@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会员价值诊断报告(脱敏样例)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:#f8fafc; color:#1e293b; line-height:1.5; padding:14px;
+  }
+  .wrap { max-width:880px; margin:0 auto; }
+  .header {
+    background:linear-gradient(to right,#4f46e5,#3b82f6);
+    border-radius:18px; padding:22px; color:#fff;
+    box-shadow:0 10px 25px rgba(79,70,229,.25); margin-bottom:18px;
+  }
+  .header .eyebrow { font-size:13px; color:#c7d2fe; font-weight:600; margin-bottom:4px; }
+  .header h1 { font-size:24px; font-weight:800; }
+  .header p { color:#c7d2fe; margin-top:8px; font-size:13px; }
+  .desens {
+    display:inline-block; margin-top:10px; font-size:11px; font-weight:700;
+    background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35);
+    color:#fff; padding:4px 10px; border-radius:7px;
+  }
+  .tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+  .tab {
+    border:none; cursor:pointer; padding:9px 13px; border-radius:9px;
+    font-size:13px; font-weight:600; background:#fff; color:#64748b;
+    box-shadow:0 1px 2px rgba(0,0,0,.04); transition:.15s;
+  }
+  .tab:hover { background:#f1f5f9; }
+  .tab.active { background:#4f46e5; color:#fff; box-shadow:0 4px 10px rgba(79,70,229,.3); }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .card {
+    background:#fff; border:1px solid #f1f5f9; border-radius:14px;
+    padding:18px; box-shadow:0 1px 3px rgba(0,0,0,.04); margin-bottom:16px;
+  }
+  .card h2 { font-size:16px; font-weight:700; color:#1e293b; margin-bottom:4px; display:flex; align-items:center; gap:7px; }
+  .sub { font-size:12px; color:#94a3b8; margin-bottom:14px; }
+  .kpi-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; margin-bottom:16px; }
+  .kpi { background:#fff; border:1px solid #f1f5f9; border-radius:13px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+  .kpi .ic { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:8px; }
+  .kpi .v { font-size:20px; font-weight:800; color:#1e293b; }
+  .kpi .l { font-size:12px; color:#64748b; font-weight:600; }
+  .kpi .s { font-size:11px; color:#94a3b8; margin-top:2px; }
+  .grid3 { display:grid; grid-template-columns:1fr; gap:11px; }
+  .mini { border-radius:13px; padding:14px; border:1px solid; }
+  .mini .t { font-weight:700; color:#1e293b; margin-bottom:4px; display:flex; align-items:center; gap:6px; font-size:14px; }
+  .mini p { font-size:12px; color:#475569; }
+  .stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:11px; }
+  .stat { background:#fff; border:1px solid #f1f5f9; border-radius:13px; padding:14px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+  .stat .v { font-size:22px; font-weight:800; }
+  .stat .l { font-size:11px; color:#64748b; margin-top:4px; }
+  .hbar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .hbar-label { width:120px; font-size:11px; color:#475569; text-align:right; flex-shrink:0; line-height:1.3; }
+  .hbar-track { flex:1; background:#f1f5f9; border-radius:6px; height:26px; position:relative; }
+  .hbar-fill { height:100%; border-radius:6px; min-width:3px; }
+  .hbar-val { font-size:11px; font-weight:700; color:#475569; flex-shrink:0; width:54px; }
+  .legend { display:grid; grid-template-columns:1fr; gap:7px; margin-top:14px; }
+  .legend-item { display:flex; align-items:flex-start; gap:7px; font-size:12px; color:#475569; }
+  .dot { width:12px; height:12px; border-radius:3px; margin-top:2px; flex-shrink:0; }
+  .note { border-radius:13px; padding:15px; font-size:12px; line-height:1.7; }
+  .note .nt { font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+  .footer { text-align:center; font-size:11px; color:#94a3b8; margin-top:22px; line-height:1.7; }
+  /* —— RFM 专用 —— */
+  .rfm-dim { display:grid; grid-template-columns:1fr; gap:11px; margin-bottom:14px; }
+  .rfm-dim .d { border-radius:13px; padding:14px; border:1px solid; }
+  .rfm-dim .dl { font-size:24px; font-weight:800; line-height:1; }
+  .rfm-dim .dn { font-weight:700; color:#1e293b; font-size:13px; margin:5px 0 3px; }
+  .rfm-dim p { font-size:12px; color:#475569; line-height:1.6; }
+  .rfm-seg { border-radius:13px; padding:14px; border:1px solid #f1f5f9; border-left-width:5px; box-shadow:0 1px 3px rgba(0,0,0,.04); margin-bottom:11px; background:#fff; }
+  .rfm-seg .sh { display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+  .rfm-seg .sn { font-weight:700; color:#1e293b; font-size:15px; }
+  .rfm-seg .scount { font-size:12px; font-weight:700; color:#475569; }
+  .rfm-tag { display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; margin:6px 4px 0 0; }
+  .rfm-seg .sd { font-size:12px; color:#475569; margin-top:8px; line-height:1.6; }
+  .rfm-seg .sa { font-size:12px; color:#1e293b; margin-top:6px; line-height:1.6; background:#f8fafc; border-radius:7px; padding:8px 10px; }
+  .money-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:9px; }
+  .money-chip { font-size:11px; font-weight:700; padding:5px 9px; border-radius:7px; background:#f8fafc; border:1px solid #f1f5f9; color:#334155; }
+  .money-chip b { font-size:13px; }
+  /* —— 同比 —— */
+  .yoy { display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; padding:6px 0; }
+  .yoy .box { text-align:center; }
+  .yoy .yv { font-size:22px; font-weight:800; color:#1e293b; }
+  .yoy .yl { font-size:11px; color:#64748b; margin-top:3px; }
+  .yoy .arrow { font-size:26px; color:#cbd5e1; }
+  .yoy .delta { font-size:20px; font-weight:800; }
+  /* —— 行动优先级表 —— */
+  .tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .tbl { width:100%; border-collapse:collapse; font-size:12px; min-width:560px; }
+  .tbl th { background:#f8fafc; text-align:left; padding:9px 10px; font-weight:700; color:#475569; border-bottom:2px solid #e2e8f0; white-space:nowrap; }
+  .tbl td { padding:9px 10px; border-bottom:1px solid #f1f5f9; color:#475569; vertical-align:top; line-height:1.5; }
+  .tbl tr:last-child td { border-bottom:none; }
+  .pri-tag { display:inline-block; font-size:10px; font-weight:700; padding:3px 8px; border-radius:5px; color:#fff; white-space:nowrap; }
+  b.amber{color:#d97706}b.red{color:#ef4444}b.blue{color:#2563eb}b.violet{color:#7c3aed}b.dark{color:#1e293b}b.green{color:#059669}
+  @media(min-width:640px){
+    .kpi-grid{grid-template-columns:repeat(5,1fr)}
+    .grid3{grid-template-columns:repeat(3,1fr)}
+    .legend{grid-template-columns:repeat(2,1fr)}
+    .rfm-dim{grid-template-columns:repeat(3,1fr)}
+    .header h1{font-size:28px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+/* ============================================================
+   ★★★ 脱敏样例:本文件所有数字均为虚构,仅保留分析结构与比例 ★★★
+   所有原始数字都在 CONFIG 中,替换为真实数据即可复用
+   ============================================================ */
+const CONFIG = {
+  // —— 报告抬头 ——
+  brandName:   "某乐园会员分析",
+  reportTitle: "会员价值诊断",
+  dateRange:   "2025.6.15 00:00~2026.6.15 23:59 · 口径:现金实收为主",
+  accumDesc:   "历史累积",
+
+  // —— 总盘子 ——
+  totalMembers: 20000,
+  annualRevenueWan: 72.3,
+
+  // —— 活跃会员按近一年到店次数(频率 F 维度细看)——
+  freqMembers: 2400,
+  midMembers:  1700,
+  onceMembers: 1100,
+
+  /* —— RFM 客户分群 ——
+     revenueYuan = 实付金额求和(元);avgPerVisit = 每次到店平均消费(元)
+     占营收% 由 revenueYuan 自动算出,不用填。 */
+  rfmSegments: [
+    { name:"重要价值客户", r:"近", f:"高", m:"高", members:1400, color:"#f59e0b",
+      revenueYuan:360000,  avgPerVisit:250,
+      define:"最近来过、来得勤、花得也多——R/F/M 三项全部高于平均,最优质的一群。",
+      action:"生意命脉,约占一半营收。给专属权益、优先服务、生日福利,核心目标是「别让他们流失」。" },
+    { name:"重要唤回客户", r:"远", f:"高", m:"高", members:210, color:"#8b5cf6",
+      revenueYuan:38000,   avgPerVisit:175,
+      define:"过去来得勤、花得多(F、M 高),但最近很久没来(R 低)——曾经的优质客正在沉默。",
+      action:"在已沉默客群中人均消费最高,流失代价最大。最高优先级精准召回:专属券 + 电话/私信定向触达。" },
+    { name:"重要发展客户", r:"近", f:"低", m:"高", members:150, color:"#fb923c",
+      revenueYuan:20000,   avgPerVisit:140,
+      define:"最近来过、花得也多(R、M 高),但来的次数还不多(F 低)——有潜力的新贵。",
+      action:"把「偶尔来的大客」养成「常来的铁粉」。用次卡、连续到店奖励提升到店频次。" },
+    { name:"重要挽留客户", r:"远", f:"低", m:"高", members:130, color:"#f97316",
+      revenueYuan:16000,   avgPerVisit:125,
+      define:"花得多(M 高),但来得少、且很久没来(R、F 低)——高价值却摇摇欲坠。",
+      action:"金额价值高但黏性差,流失风险大。重点挽留:专属关怀 + 高吸引力的回归礼遇。" },
+    { name:"一般活跃客户", r:"近", f:"高", m:"低", members:250, color:"#10b981",
+      revenueYuan:16000,   avgPerVisit:65,
+      define:"最近常来(R、F 高),但每次花得不多(M 低)——忠诚但客单价偏低。",
+      action:"黏性好、就差客单价。用套餐、连带销售、升级项目引导他们「单次多花一点」。" },
+    { name:"一般客户", r:"远", f:"高", m:"低", members:1300, color:"#60a5fa",
+      revenueYuan:170000,   avgPerVisit:130,
+      define:"曾经来得勤但金额低,最近也开始变少(R 低、F 高、M 低)——普通会员,正在转冷。",
+      action:"第二大群体,基数大。低成本批量运营(节日群发、暑期卡),防止他们滑向流失。" },
+    { name:"新客/低频客户", r:"近", f:"低", m:"低", members:800, color:"#38bdf8",
+      revenueYuan:34000,   avgPerVisit:42,
+      define:"最近才来、来得少、花得也少(R 高,F、M 低)——刚接触的新客或尝鲜客。",
+      action:"留存转化的主战场。用暑期卡这类「必须多次到店」的工具,把一次性体验变成习惯。" },
+    { name:"流失客户", r:"远", f:"低", m:"低", members:950, color:"#cbd5e1",
+      revenueYuan:38000,   avgPerVisit:38,
+      define:"很久没来、来得少、花得也少——R/F/M 三项均低于平均。",
+      action:"低价值且基本流失,投入产出比低。用低成本群发触达即可,不宜投入过多资源。" },
+  ],
+
+  // —— 佚名客户(单列)——
+  rfmAnonymous: {
+    records: 10,
+    revenueYuan: 35000,
+    note: "这一栏的会员名被设置成了表情或特殊符号,系统导出时显示为「-」、无法识别名字,实际上是被合并到一起的一群人(类似「佚名」)。因为无法逐人对应,所以没法做 RFM 打分。",
+  },
+
+  /* —— 行动优先级(可决策表)——
+     「预估回报」均为基于明确假设的粗估;priority 越小越优先;color 控制标签底色。 */
+  actionPlan: [
+    { priority:"P0", action:"精准召回沉默高价值客", target:"重要唤回客户 210 人",
+      basis:"每次到店均消 ¥175,在沉默客群中最高,流失代价最大", expect:"按召回 30% 估 ≈ ¥1.1 万/轮",
+      owner:"店长 / 私域", color:"#ef4444" },
+    { priority:"P1", action:"新客习惯养成(暑期卡)", target:"新客/低频 800 人",
+      basis:"已到店、未成习惯,是留存主战场", expect:"转化 20% 为复购,撬动后续多次到店",
+      owner:"前台 / 营销", color:"#f59e0b" },
+    { priority:"P1", action:"提升客单价", target:"一般活跃客户 250 人",
+      basis:"黏性好但单次仅 ¥65,远低于均值", expect:"单次 +¥20,按现有频次 ≈ ¥1 万+/年",
+      owner:"现场销售", color:"#f59e0b" },
+    { priority:"P2", action:"维稳防流失", target:"重要价值客户 1400 人",
+      basis:"撑起约半数营收,丢一个抵十个新客", expect:"专属权益锁客,守住约 ¥36 万基本盘",
+      owner:"店长", color:"#3b82f6" },
+    { priority:"P2", action:"高价值挽留", target:"重要挽留 130 人",
+      basis:"金额高但黏性差,处于流失边缘", expect:"回归礼遇,挽回部分高客单",
+      owner:"私域", color:"#3b82f6" },
+    { priority:"P3", action:"低成本批量触达", target:"一般客户 1300 人 + 流失 950 人",
+      basis:"基数大、单体价值低,不宜重投入", expect:"节日群发维持曝光,成本极低",
+      owner:"系统群发", color:"#94a3b8" },
+  ],
+
+  /* —— 月度淡旺季 —— */
+  defaultTypeRatio: {
+    "重要价值客户":0.50, "重要唤回客户":0.12, "重要发展客户":0.08, "重要挽留客户":0.07,
+    "一般活跃客户":0.04, "一般客户":0.10, "新客/低频客户":0.06, "流失客户":0.03
+  },
+  monthly: [
+    { m:"2025年6月",  byType:{ "重要价值客户":18000,"重要唤回客户":6500,"重要发展客户":800,"重要挽留客户":2500,"一般活跃客户":900,"一般客户":8500,"新客/低频客户":1200,"流失客户":3600 } },
+    { m:"2025年7月",  byType:{ "重要价值客户":35000,"重要唤回客户":13000,"重要发展客户":1500,"重要挽留客户":5500,"一般活跃客户":1800,"一般客户":19000,"新客/低频客户":3200,"流失客户":9000 } },
+    { m:"2025年8月",  byType:{ "重要价值客户":38000,"重要唤回客户":14000,"重要发展客户":1800,"重要挽留客户":6200,"一般活跃客户":2000,"一般客户":21000,"新客/低频客户":3500,"流失客户":8500 } },
+    { m:"2025年9月",  byType:{ "重要价值客户":22000,"重要唤回客户":1200,"重要发展客户":700,"重要挽留客户":900,"一般活跃客户":700,"一般客户":17000,"新客/低频客户":700,"流失客户":800 } },
+    { m:"2025年10月", byType:{ "重要价值客户":18000,"重要唤回客户":0,"重要发展客户":600,"重要挽留客户":6000,"一般活跃客户":450,"一般客户":22650,"新客/低频客户":300,"流失客户":0 } },
+    { m:"2025年11月", byType:{ "重要价值客户":9500,"重要唤回客户":0,"重要发展客户":600,"重要挽留客户":0,"一般活跃客户":250,"一般客户":19350,"新客/低频客户":300,"流失客户":0 }},
+    { m:"2025年12月", byType:{ "重要价值客户":7000,"重要唤回客户":0,"重要发展客户":200,"重要挽留客户":0,"一般活跃客户":150,"一般客户":16350,"新客/低频客户":300,"流失客户":0 } },
+    { m:"2026年1月",  byType:{ "重要价值客户":12000,"重要唤回客户":0,"重要发展客户":400,"重要挽留客户":0,"一般活跃客户":150,"一般客户":23150,"新客/低频客户":300,"流失客户":0 } },
+    { m:"2026年2月",  byType:{ "重要价值客户":20000,"重要唤回客户":0,"重要发展客户":900,"重要挽留客户":0,"一般活跃客户":600,"一般客户":27500,"新客/低频客户":1000,"流失客户":0 } },
+    { m:"2026年3月",  byType:{ "重要价值客户":28000,"重要唤回客户":0,"重要发展客户":1200,"重要挽留客户":0,"一般活跃客户":1500,"一般客户":19300,"新客/低频客户":2000,"流失客户":0 } },
+    { m:"2026年4月",  byType:{ "重要价值客户":48000,"重要唤回客户":0,"重要发展客户":4000,"重要挽留客户":0,"一般活跃客户":3500,"一般客户":0,"新客/低频客户":8500,"流失客户":0 } },
+    { m:"2026年5月",  byType:{ "重要价值客户":52000,"重要唤回客户":0,"重要发展客户":6000,"重要挽留客户":0,"一般活跃客户":3800,"一般客户":0,"新客/低频客户":8200,"流失客户":0 } },
+    { m:"2026年6月",  byType:{ "重要价值客户":30000,"重要唤回客户":0,"重要发展客户":3200,"重要挽留客户":0,"一般活跃客户":2300,"一般客户":0,"新客/低频客户":9500,"流失客户":0 } },
+  ],
+};
+
+/* ============================================================
+   自动计算 + 渲染(通常不需要改动)
+   ============================================================ */
+const C = CONFIG;
+const active   = C.freqMembers + C.midMembers + C.onceMembers;
+const sleeping = C.totalMembers - active;
+const perCapita   = Math.round(C.annualRevenueWan * 10000 / active);
+const convertible     = C.onceMembers + C.midMembers;
+
+const num = n => Math.round(n).toLocaleString('en-US');
+const pct = (x, d=1) => (x*100).toFixed(d) + '%';
+const pyMax = Math.max(sleeping, C.freqMembers, C.midMembers, C.onceMembers);
+
+// —— RFM 自动计算 ——
+const rfmDisplay = C.rfmSegments.slice();
+const rfmKnownSum = C.rfmSegments.reduce((s,x)=>s+(x.members||0),0);
+const anonCount = C.rfmAnonymous.records || 0;
+const rfmOther = active - rfmKnownSum - anonCount;
+if (rfmOther > 0) {
+  rfmDisplay.push({ name:"其余分群(待补充)", members:rfmOther, color:"#e2e8f0", placeholder:true,
+    define:"尚未填入的分群。把人数补进 CONFIG 的 rfmSegments 后,此占位会自动消失。", action:"—" });
+}
+const rfmTotal = rfmKnownSum;
+const rfmRevTotal = C.rfmSegments.reduce((s,x)=> s + (x.revenueYuan||0), 0);
+const rfmMax = Math.max.apply(null, rfmDisplay.map(x=>x.members));
+const topShare = C.rfmSegments[0].revenueYuan / rfmRevTotal;
+
+const rfmBars = rfmDisplay.map(function(s){
+  return '<div class="hbar-row">'
+    + '<div class="hbar-label">'+s.name+'</div>'
+    + '<div class="hbar-track"><div class="hbar-fill" style="width:'+pct(s.members/rfmMax,1)+';background:'+s.color+'"></div></div>'
+    + '<div class="hbar-val">'+num(s.members)+'</div></div>';
+}).join('');
+
+const rfmCards = rfmDisplay.map(function(s){
+  var tags = [];
+  if (s.r) tags.push('<span class="rfm-tag" style="background:#eff6ff;color:#2563eb">R 最近 · '+s.r+'</span>');
+  if (s.f) tags.push('<span class="rfm-tag" style="background:#fffbeb;color:#d97706">F 频率 · '+s.f+'</span>');
+  if (s.m) tags.push('<span class="rfm-tag" style="background:#ecfdf5;color:#059669">M 金额 · '+s.m+'</span>');
+  var chips = [];
+  if (s.revenueYuan!=null)
+    chips.push('<span class="money-chip">实付合计 <b style="color:#059669">¥'+num(s.revenueYuan)+'</b></span>');
+  if (rfmRevTotal>0 && s.revenueYuan!=null)
+    chips.push('<span class="money-chip">占营收 <b style="color:#d97706">'+pct(s.revenueYuan/rfmRevTotal,1)+'</b></span>');
+  if (s.avgPerVisit!=null)
+    chips.push('<span class="money-chip">每次到店均消 <b style="color:#2563eb">¥'+num(s.avgPerVisit)+'</b></span>');
+  return '<div class="rfm-seg" style="border-left-color:'+s.color+(s.placeholder?';background:#f8fafc':'')+'">'
+    + '<div class="sh"><span class="sn">'+s.name+'</span>'
+    + '<span class="scount">'+num(s.members)+' 人 · '+pct(s.members/rfmTotal,1)+'</span></div>'
+    + (tags.length?'<div>'+tags.join('')+'</div>':'')
+    + (chips.length?'<div class="money-row">'+chips.join('')+'</div>':'')
+    + '<div class="sd">📌 <b>分类依据:</b>'+s.define+'</div>'
+    + (s.action!=='—'?'<div class="sa">🎯 <b>运营动作:</b>'+s.action+'</div>':'')
+    + '</div>';
+}).join('');
+
+const anonCard = '<div class="rfm-seg" style="border-left-color:#94a3b8;background:#f8fafc">'
+  + '<div class="sh"><span class="sn">🎭 佚名客户(未识别)</span>'
+  + '<span class="scount">'+num(anonCount)+' 条合并记录 · ¥'+num(C.rfmAnonymous.revenueYuan)+' 累计消费</span></div>'
+  + '<div class="sd">📌 <b>为什么单列:</b>'+C.rfmAnonymous.note+'</div>'
+  + '<div class="sa">🎯 <b>处理方式:</b>不参与上面的 RFM 打分与分群统计,仅在此单独保留记录。若日后要对这群人做精准营销,需先在系统里把会员名规范化(去掉表情/特殊符号)后重新识别拆分。</div>'
+  + '</div>';
+
+// —— 月度淡旺季计算 ——
+const segColor = {};
+C.rfmSegments.forEach(s=> segColor[s.name]=s.color);
+function moByType(mo){
+  if (mo.byType) return { data:mo.byType, approx:false };
+  var r={}, tot=mo.total||0;
+  C.rfmSegments.forEach(s=> r[s.name] = tot * (C.defaultTypeRatio[s.name]||0));
+  return { data:r, approx:true };
+}
+const moRows = C.monthly.map(function(mo){
+  var bt = moByType(mo);
+  var tot = mo.total!=null ? mo.total : Object.keys(bt.data).reduce((s,k)=>s+bt.data[k],0);
+  return { m:mo.m, tot:tot, bt:bt.data, approx:bt.approx };
+});
+const moMax  = Math.max.apply(null, moRows.map(x=>x.tot));
+const moYear = moRows.reduce((s,x)=>s+x.tot,0);
+const anyApprox = moRows.some(x=>x.approx);
+let peak=moRows[0], low=moRows[0];
+moRows.forEach(x=>{ if(x.tot>peak.tot)peak=x; if(x.tot<low.tot)low=x; });
+const summerTot = moRows.filter(x=> x.m.indexOf('7月')>=0 || x.m.indexOf('8月')>=0).reduce((s,x)=>s+x.tot,0);
+
+// —— 同比(同月)——
+const jun25 = moRows.find(x=>x.m==='2025年6月');
+const jun26 = moRows.find(x=>x.m==='2026年6月');
+const yoyJun = (jun25 && jun26 && jun25.tot>0) ? (jun26.tot - jun25.tot)/jun25.tot : null;
+
+// —— 月度合计与全年实收的差额(=佚名,用于说明)——
+const annualYuan = C.annualRevenueWan * 10000;
+const moGap = annualYuan - moYear;
+
+const moBars = moRows.map(function(x){
+  var inner = C.rfmSegments.map(function(s){
+    var v = x.bt[s.name]||0; if(!v) return '';
+    return '<div style="width:'+(v/x.tot*100).toFixed(2)+'%;background:'+s.color+'"></div>';
+  }).join('');
+  return '<div class="hbar-row">'
+    + '<div class="hbar-label" style="width:40px">'+x.m+(x.approx?'<span style="color:#f59e0b">*</span>':'')+'</div>'
+    + '<div class="hbar-track" style="height:24px"><div class="hbar-fill" style="width:'+(x.tot/moMax*100).toFixed(1)+'%;display:flex;overflow:hidden;border-radius:6px">'+inner+'</div></div>'
+    + '<div class="hbar-val" style="width:108px;text-align:right">¥'+(x.tot/10000).toFixed(1)+'万·'+pct(x.tot/moYear,1)+'</div></div>';
+}).join('');
+
+const moLegend = C.rfmSegments.map(function(s){
+  return '<div class="legend-item"><span class="dot" style="background:'+s.color+'"></span><span>'+s.name+'</span></div>';
+}).join('');
+
+// —— 行动优先级表 ——
+const planRows = C.actionPlan.map(function(a){
+  return '<tr>'
+    +'<td><span class="pri-tag" style="background:'+a.color+'">'+a.priority+'</span></td>'
+    +'<td><b style="color:#1e293b">'+a.action+'</b></td>'
+    +'<td>'+a.target+'</td>'
+    +'<td>'+a.basis+'</td>'
+    +'<td><b style="color:#059669">'+a.expect+'</b></td>'
+    +'<td>'+a.owner+'</td>'
+    +'</tr>';
+}).join('');
+
+const HTML = `
+  <div class="header">
+    <div class="eyebrow">📊 会员经营 · 数据分析报告</div>
+    <h1>${C.brandName} · ${C.reportTitle}</h1>
+    <p>数据范围:${C.dateRange}</p>
+    <span class="desens">🔒 作品集样例 · 数据已脱敏,所有数字均为虚构,仅保留分析方法与结构</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-t="overview">🔍 核心摘要</button>
+    <button class="tab" data-t="rfm">🎯 RFM 客户分群</button>
+    <button class="tab" data-t="members">📊 到店频率(F)</button>
+    <button class="tab" data-t="revenue">📅 淡旺季分析</button>
+    <button class="tab" data-t="plan">📋 行动优先级</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="panel active" id="overview">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="ic" style="background:#f1f5f9">👥</div><div class="v">${num(C.totalMembers)}</div><div class="l">总会员</div><div class="s">${C.accumDesc}</div></div>
+      <div class="kpi"><div class="ic" style="background:#d1fae5">⚡</div><div class="v">${num(active)}</div><div class="l">活跃会员</div><div class="s">近一年有消费</div></div>
+      <div class="kpi"><div class="ic" style="background:#fef3c7">👑</div><div class="v">${num(C.rfmSegments[0].members)}</div><div class="l">重要价值客户</div><div class="s">贡献约${pct(topShare,0)}收入</div></div>
+      <div class="kpi"><div class="ic" style="background:#dbeafe">💰</div><div class="v">¥${C.annualRevenueWan}万</div><div class="l">全年实收</div><div class="s">现金口径</div></div>
+      <div class="kpi"><div class="ic" style="background:#ede9fe">📈</div><div class="v">¥${perCapita}</div><div class="l">活跃人均</div><div class="s">年消费/人</div></div>
+    </div>
+
+    <div class="card">
+      <h2>✅ 一句话结论</h2>
+      <p style="font-size:13px;color:#475569;line-height:1.8">
+        这是一门 <b class="dark">"小额、高频、靠适龄家庭持续补充"</b> 的会员生意。盘子的根基稳固——
+        RFM 分群里 <b class="amber">约${num(C.rfmSegments[0].members)}个"重要价值客户"撑起 ${pct(topShare,0)} 营收</b>;但增长的真正瓶颈不在"客流总量",而在
+        <b class="red">"留存转化"</b>:既有 <b class="violet">${num(C.rfmSegments[1].members)}个"重要唤回客户"(每次到店均消¥${num(C.rfmSegments[1].avgPerVisit)},在已沉默客群中最高却仍流失)</b> 亟需召回,也有
+        <b class="red">${num(C.rfmSegments[6].members)}个新客/低频客户</b> 尚未养成习惯。这是漏斗最该被堵的破口。
+      </p>
+    </div>
+
+    <div class="grid3">
+      <div class="mini" style="background:#ecfdf5;border-color:#a7f3d0">
+        <div class="t" style="color:#1e293b">✅ 健康面</div>
+        <p>重要价值客户稳固,旺季现金流充沛,二八结构清晰。</p>
+      </div>
+      <div class="mini" style="background:#fef2f2;border-color:#fecaca">
+        <div class="t" style="color:#1e293b">⚠️ 风险面</div>
+        <p>${num(C.rfmSegments[1].members)}个高价值客户沉默待召回,${num(C.onceMembers)}人只来一次,留存漏水。</p>
+      </div>
+      <div class="mini" style="background:#eff6ff;border-color:#bfdbfe">
+        <div class="t" style="color:#1e293b">🎓 规律面</div>
+        <p>孩子长大即"毕业",老客自然流失是物理规律。</p>
+      </div>
+    </div>
+
+    <div class="note" style="background:#f8fafc;border:1px solid #e2e8f0">
+      <div class="nt" style="color:#475569">📖 数据说明 / 口径</div>
+      <span style="color:#475569">
+        ① 营收为<b>现金实收口径</b>,储值卡/次卡若以"核销时计收"则已包含,若另有"充值未核销"部分不计入本表。<br>
+        ② 全年实收 ¥${C.annualRevenueWan}万,其中可识别会员按月汇总约 ¥${(moYear/10000).toFixed(1)}万,差额约 <b>¥${(moGap/10000).toFixed(1)}万</b> 主要为佚名记录(¥${(C.rfmAnonymous.revenueYuan/10000).toFixed(1)}万)及零头,故月度图合计略低于全年总数,属正常。<br>
+        ③ 数据跨 13 个自然月(2025.6–2026.6),首尾各含一个 6 月,占比类指标的分母含两个 6 月,趋势仅供参考。<br>
+        ④ RFM 仅覆盖可识别活跃会员 ${num(rfmKnownSum)} 人;沉睡/未激活会员约 ${num(sleeping)} 人未进入分群模型。
+      </span>
+    </div>
+  </div>
+
+  <!-- RFM -->
+  <div class="panel" id="rfm">
+    <div class="card">
+      <h2>RFM 是什么 · 怎么分类的</h2>
+      <div class="sub">用三个维度给每位会员"打分",再按高低组合划出客户类型</div>
+      <div class="rfm-dim">
+        <div class="d" style="background:#eff6ff;border-color:#bfdbfe">
+          <div class="dl" style="color:#2563eb">R</div>
+          <div class="dn">最近消费 Recency</div>
+          <p>距今多久来过一次。越近说明越活跃,记"近";太久没来记"远"。</p>
+        </div>
+        <div class="d" style="background:#fffbeb;border-color:#fde68a">
+          <div class="dl" style="color:#d97706">F</div>
+          <div class="dn">消费频率 Frequency</div>
+          <p>统计期内到店次数。来得越勤越忠诚,记"高";偶尔来记"低"。</p>
+        </div>
+        <div class="d" style="background:#ecfdf5;border-color:#a7f3d0">
+          <div class="dl" style="color:#059669">M</div>
+          <div class="dn">消费金额 Monetary</div>
+          <p>累计消费金额。花得越多越有价值,记"高";花得少记"低"。</p>
+        </div>
+      </div>
+      <div class="note" style="background:#f8fafc;border:1px solid #e2e8f0">
+        <span style="color:#475569"><b class="dark">划分规则:</b>把每位会员的 R / F / M 分别与<b>全体平均值</b>对比——高于平均记"高/近",低于平均记"低/远"。三个维度的"高低"两两组合,共 8 种,正好对应下面 8 类客户。<b>(注:均值切分在少数大客拉高平均时会让"高"组偏小,后续可改用分位数法复核。)</b></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>各分群规模</h2>
+      <div class="sub">可识别活跃会员共 ${num(rfmKnownSum)} 人(佚名记录单列,见下)</div>
+      ${rfmBars}
+      <div class="note" style="background:#ecfdf5;border:1px solid #a7f3d0;margin-top:6px">
+        <span style="color:#065f46"><b>校验:</b>8 类合计 ${num(rfmKnownSum)} 人,加上 ${num(anonCount)} 条佚名合并记录,正好 = 活跃会员 ${num(active)} 人,数据完整无缺口。</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>分群明细 · 金额、客单价与运营动作</h2>
+      <div class="sub">每类客户的 R/F/M 组合、实付金额合计、每次到店平均消费,以及该怎么对待</div>
+      ${rfmCards}
+      <div class="note" style="background:#eff6ff;border:1px solid #bfdbfe;margin-top:4px">
+        <span style="color:#1e3a8a"><b class="blue">读图提示:</b>「实付合计」是该类会员近一年的总贡献;「每次到店均消」反映客单价高低。可以看到高价值类(发展/挽留)虽然人少,但每次到店均消明显高于普通类——这正是把资源向他们倾斜的依据。</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🎭 佚名客户(单列)</h2>
+      <div class="sub">无法识别、不参与打分,仅保留记录</div>
+      ${anonCard}
+    </div>
+  </div>
+
+  <!-- MEMBERS / 频率 -->
+  <div class="panel" id="members">
+    <div class="card">
+      <h2>到店频率漏斗(RFM 中的 F 维度细看)</h2>
+      <div class="sub">活跃会员${num(active)}人按近一年到店次数拆分,看新客转化与留存</div>
+      <div class="hbar-row">
+        <div class="hbar-label">沉睡/未激活</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:${pct(sleeping/pyMax,1)};background:#cbd5e1"></div></div>
+        <div class="hbar-val">${num(sleeping)}</div>
+      </div>
+      <div class="hbar-row">
+        <div class="hbar-label">来4次及以上</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:${pct(C.freqMembers/pyMax,1)};background:#f59e0b"></div></div>
+        <div class="hbar-val">${num(C.freqMembers)}</div>
+      </div>
+      <div class="hbar-row">
+        <div class="hbar-label">来2-3次(中间层)</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:${pct(C.midMembers/pyMax,1)};background:#60a5fa"></div></div>
+        <div class="hbar-val">${num(C.midMembers)}</div>
+      </div>
+      <div class="hbar-row">
+        <div class="hbar-label">只来1次(漏斗破口)</div>
+        <div class="hbar-track"><div class="hbar-fill" style="width:${pct(C.onceMembers/pyMax,1)};background:#f87171"></div></div>
+        <div class="hbar-val">${num(C.onceMembers)}</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="dot" style="background:#cbd5e1"></span><span><b class="dark">沉睡/未激活:</b> 近一年无消费(含已"毕业"的)</span></div>
+        <div class="legend-item"><span class="dot" style="background:#f59e0b"></span><span><b class="dark">来4次及以上:</b> 高频,生意的命根子</span></div>
+        <div class="legend-item"><span class="dot" style="background:#60a5fa"></span><span><b class="dark">来2-3次:</b> 最有提升空间的人</span></div>
+        <div class="legend-item"><span class="dot" style="background:#f87171"></span><span><b class="dark">只来1次:</b> 试过就走,留存失败</span></div>
+      </div>
+    </div>
+    <div class="note" style="background:#fffbeb;border:1px solid #fde68a">
+      <div class="nt" style="color:#92400e">🎯 分析师备注</div>
+      <span style="color:#78350f">"只来1次"和"2-3次"两层合计 <b>${num(convertible)}人</b>,是暑期卡最该主攻的"可转化人群"——对应 RFM 里的"新客/低频客户"与"一般客户"。沉睡池${num(sleeping)}人需先用"时间"字段区分 <b>"真睡着(近期才停)"</b> 与 <b>"已毕业(很久没来)"</b>,只唤醒前者。</span>
+    </div>
+  </div>
+
+  <!-- 淡旺季分析 -->
+  <div class="panel" id="revenue">
+    <div class="card">
+      <h2>📅 淡旺季分析 · ${moRows.length}个月实收</h2>
+      <div class="sub">条长 = 该月实收占合计比例 &nbsp;|&nbsp; 条内颜色 = 该月各类客户的贡献占比</div>
+      ${moBars}
+      ${anyApprox ? '<div class="note" style="background:#fffbeb;border:1px solid #fde68a;margin-top:6px"><span style="color:#92400e"><b>注:</b>带 <b style="color:#f59e0b">*</b> 的月份只填了实收总额,条内颜色是按"全年平均结构"<b>估算</b>的,仅供示意。</span></div>' : ''}
+      <div class="note" style="background:#fef2f2;border:1px solid #fecaca;margin-top:6px">
+        <span style="color:#991b1b"><b>重要读图前提(方法论):</b>客户分群标签是按<b>全年一次性</b>划定的,而"流失/唤回/挽留"等类别的定义本身就含「很久没来」。因此这些类别在最近几个月自然为 0——这是<b>分类定义所致,并非该群体真的在淡季消失</b>。所以本图<b>只适合横向看"新客/低频(浅蓝)"等近期活跃类的季节变化</b>,不要据此解读"流失客户在某月不见了"。</span>
+      </div>
+    </div>
+
+    <div class="stat-grid" style="margin-bottom:16px">
+      <div class="stat"><div class="v" style="color:#f59e0b">${peak.m}</div><div class="l">最旺月(¥${(peak.tot/10000).toFixed(1)}万 · ${pct(peak.tot/moYear,1)})</div></div>
+      <div class="stat"><div class="v" style="color:#60a5fa">${low.m}</div><div class="l">最淡月(¥${(low.tot/10000).toFixed(1)}万 · ${pct(low.tot/moYear,1)})</div></div>
+      <div class="stat"><div class="v" style="color:#059669">${pct(summerTot/moYear,0)}</div><div class="l">暑期(7-8月)占合计</div></div>
+    </div>
+
+    ${ yoyJun!=null ? `
+    <div class="card">
+      <h2>📈 同比对比 · 同月</h2>
+      <div class="sub">数据首尾各含一个 6 月,正好可做同月同比,看经营方向</div>
+      <div class="yoy">
+        <div class="box"><div class="yv">¥${(jun25.tot/10000).toFixed(2)}万</div><div class="yl">2025年6月</div></div>
+        <div class="arrow">→</div>
+        <div class="box"><div class="yv">¥${(jun26.tot/10000).toFixed(2)}万</div><div class="yl">2026年6月</div></div>
+        <div class="box"><div class="delta" style="color:${yoyJun<0?'#ef4444':'#059669'}">${yoyJun<0?'▼':'▲'} ${pct(Math.abs(yoyJun),1)}</div><div class="yl">同比</div></div>
+      </div>
+      <div class="note" style="background:#eff6ff;border:1px solid #bfdbfe;margin-top:10px">
+        <span style="color:#1e3a8a"><b class="blue">注意:</b>两个 6 月均为半月(15 日截断),口径一致可比;同比${yoyJun<0?'下滑':'上升'}约 ${pct(Math.abs(yoyJun),0)},建议结合天气、活动档期进一步归因。单点同比仅作方向参考,后续补齐逐月同比更可靠。</span>
+      </div>
+    </div>` : '' }
+
+    <div class="card">
+      <h2>颜色图例(客户类型)</h2>
+      <div class="legend">${moLegend}</div>
+    </div>
+
+    <div class="note" style="background:#eff6ff;border:1px solid #bfdbfe">
+      <span style="color:#1e3a8a"><b class="blue">怎么看:</b>条形越长的月份越旺。更关键的是看<b>条内"新客/低频(浅蓝)"那一段如何随季节变宽</b>——旺季它若明显加宽,说明暑假确实带来大量新客,这正是暑期卡转化的原料;若旺季主要靠"重要价值客户"(橙)撑着,则说明旺季更多是老客加倍消费,而非拉新。</span>
+    </div>
+  </div>
+
+  <!-- 行动优先级 -->
+  <div class="panel" id="plan">
+    <div class="card">
+      <h2>📋 行动优先级</h2>
+      <div class="sub">把分群结论收口成"先做什么、对谁、靠什么依据、能换回多少、谁来做"</div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr><th>优先级</th><th>动作</th><th>目标人群</th><th>决策依据</th><th>预估回报(粗估)</th><th>负责</th></tr>
+          </thead>
+          <tbody>${planRows}</tbody>
+        </table>
+      </div>
+      <div class="note" style="background:#fffbeb;border:1px solid #fde68a;margin-top:12px">
+        <span style="color:#92400e"><b>关于"预估回报":</b>表中数字是<b>基于明确假设的粗估</b>(如"召回率 30%""单次 +¥20"),目的是让建议可被讨论和验证,而非精确预测。落地后请用实际数据回填、迭代假设——<b>写出假设</b>本身就是专业报告与口号的区别。</span>
+      </div>
+    </div>
+
+    <div class="note" style="background:#eff6ff;border:1px solid #bfdbfe">
+      <span style="color:#1e3a8a"><b class="blue">投入逻辑:</b>P0/P1 集中在"高价值召回"与"新客留存"——前者单位产出最高、后者决定盘子能否持续补充;P2 守住基本盘;P3 用近乎零成本的群发维持触达即可,不宜重投。<b>有限资源应优先砸在 P0、P1。</b></span>
+    </div>
+  </div>
+
+  <div class="footer">
+    🔒 本报告为作品集展示样例,品牌、人数、金额等均为虚构脱敏数据,不代表任何真实企业经营情况。<br>
+    分析方法(RFM 分群 / 留存漏斗 / 淡旺季拆解 / 行动优先级)与可视化结构为作者原创。
+  </div>
+`;
+
+document.getElementById('app').innerHTML = HTML;
+
+document.querySelectorAll('.tab').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.getAttribute('data-t')).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
