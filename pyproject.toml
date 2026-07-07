@@ -1,0 +1,9 @@
+[project]
+name = "rfm-report"
+version = "1.0.0"
+description = "RFM客户价值分析报告（Vanilla JS + 手写CSS图表）"
+requires-python = ">=3.10"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
