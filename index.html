@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会员价值诊断报告(脱敏样例)</title>
+
+<!-- 步骤 1：样式 ── style.css -->
+<link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<!--
+  加载顺序说明（全局作用域，非 ES Module）：
+    步骤 2：config.js  → 定义 CONFIG（纯数据）
+    步骤 3：rfm.js     → 定义 RFM 计算/渲染函数（依赖 CONFIG）
+    步骤 4：charts.js  → 定义图表渲染函数（依赖 CONFIG + rfm.js 的 num/pct）
+    步骤 5：下面的内联脚本 → 调用上面所有函数，组装完整页面
+-->
+<script src="config.js"></script>
+<script src="rfm.js"></script>
+<script src="charts.js"></script>
+
+<script>
+/* ============================================================
+   主组装脚本 — 职责：调所有模块的函数，拼出完整页面
+   ============================================================ */
+(function() {
+  var C = CONFIG;
+
+  // ── 步骤 5a：计算所有数据 ──
+  var rfmData = computeRfmData();
+  var moData  = computeMonthlyData();
+
+  // ── 步骤 5b：用各模块渲染 HTML 片段 ──
+  var rfmBars  = buildRfmBars(rfmData.rfmDisplay, rfmData.rfmMax);
+  var rfmCards = buildRfmCards(rfmData.rfmDisplay, rfmData.rfmRevTotal);
+  var anonCard = buildAnonCard();
+  var moBars   = buildMoBars(moData.moRows, moData.moMax, moData.moYear, moData.segColor);
+  var moLegend = buildMoLegend();
+  var yoyBlock = buildYoyComparison(moData.yoyJun, moData.jun25, moData.jun26);
+  var planRows = buildActionPlan();
+  var freqChart = buildFreqChart(rfmData.active, rfmData.sleeping, rfmData.pyMax, rfmData.convertible);
+
+  // ── 步骤 5c：组装完整页面 HTML ──
+  var HTML = ''
+    + '<div class="header">'
+    + '<div class="eyebrow">📊 会员经营 · 数据分析报告</div>'
+    + '<h1>' + C.brandName + ' · ' + C.reportTitle + '</h1>'
+    + '<p>数据范围:' + C.dateRange + '</p>'
+    + '<span class="desens">🔒 作品集样例 · 数据已脱敏,所有数字均为虚构,仅保留分析方法与结构</span>'
+    + '</div>'
+
+    + '<div class="tabs">'
+    + '<button class="tab active" data-t="overview">🔍 核心摘要</button>'
+    + '<button class="tab" data-t="rfm">🎯 RFM 客户分群</button>'
+    + '<button class="tab" data-t="members">📊 到店频率(F)</button>'
+    + '<button class="tab" data-t="revenue">📅 淡旺季分析</button>'
+    + '<button class="tab" data-t="plan">📋 行动优先级</button>'
+    + '</div>'
+
+    // ========== OVERVIEW 面板 ==========
+    + '<div class="panel active" id="overview">'
+    + '<div class="kpi-grid">'
+    + '<div class="kpi"><div class="ic" style="background:#f1f5f9">👥</div><div class="v">' + num(C.totalMembers) + '</div><div class="l">总会员</div><div class="s">' + C.accumDesc + '</div></div>'
+    + '<div class="kpi"><div class="ic" style="background:#d1fae5">⚡</div><div class="v">' + num(rfmData.active) + '</div><div class="l">活跃会员</div><div class="s">近一年有消费</div></div>'
+    + '<div class="kpi"><div class="ic" style="background:#fef3c7">👑</div><div class="v">' + num(C.rfmSegments[0].members) + '</div><div class="l">重要价值客户</div><div class="s">贡献约' + pct(rfmData.topShare, 0) + '收入</div></div>'
+    + '<div class="kpi"><div class="ic" style="background:#dbeafe">💰</div><div class="v">¥' + C.annualRevenueWan + '万</div><div class="l">全年实收</div><div class="s">现金口径</div></div>'
+    + '<div class="kpi"><div class="ic" style="background:#ede9fe">📈</div><div class="v">¥' + rfmData.perCapita + '</div><div class="l">活跃人均</div><div class="s">年消费/人</div></div>'
+    + '</div>'
+
+    + '<div class="card">'
+    + '<h2>✅ 一句话结论</h2>'
+    + '<p style="font-size:13px;color:#475569;line-height:1.8">'
+    + '这是一门 <b class="dark">"小额、高频、靠适龄家庭持续补充"</b> 的会员生意。盘子的根基稳固——'
+    + 'RFM 分群里 <b class="amber">约' + num(C.rfmSegments[0].members) + '个"重要价值客户"撑起 ' + pct(rfmData.topShare, 0) + ' 营收</b>;但增长的真正瓶颈不在"客流总量",而在'
+    + '<b class="red">"留存转化"</b>:既有 <b class="violet">' + num(C.rfmSegments[1].members) + '个"重要唤回客户"(每次到店均消¥' + num(C.rfmSegments[1].avgPerVisit) + ',在已沉默客群中最高却仍流失)</b> 亟需召回,也有'
+    + '<b class="red">' + num(C.rfmSegments[6].members) + '个新客/低频客户</b> 尚未养成习惯。这是漏斗最该被堵的破口。'
+    + '</p>'
+    + '</div>'
+
+    + '<div class="grid3">'
+    + '<div class="mini" style="background:#ecfdf5;border-color:#a7f3d0"><div class="t" style="color:#1e293b">✅ 健康面</div><p>重要价值客户稳固,旺季现金流充沛,二八结构清晰。</p></div>'
+    + '<div class="mini" style="background:#fef2f2;border-color:#fecaca"><div class="t" style="color:#1e293b">⚠️ 风险面</div><p>' + num(C.rfmSegments[1].members) + '个高价值客户沉默待召回,' + num(C.onceMembers) + '人只来一次,留存漏水。</p></div>'
+    + '<div class="mini" style="background:#eff6ff;border-color:#bfdbfe"><div class="t" style="color:#1e293b">🎓 规律面</div><p>孩子长大即"毕业",老客自然流失是物理规律。</p></div>'
+    + '</div>'
+
+    + '<div class="note" style="background:#f8fafc;border:1px solid #e2e8f0">'
+    + '<div class="nt" style="color:#475569">📖 数据说明 / 口径</div>'
+    + '<span style="color:#475569">'
+    + '① 营收为<b>现金实收口径</b>,储值卡/次卡若以"核销时计收"则已包含,若另有"充值未核销"部分不计入本表。<br>'
+    + '② 全年实收 ¥' + C.annualRevenueWan + '万,其中可识别会员按月汇总约 ¥' + (moData.moYear / 10000).toFixed(1) + '万,差额约 <b>¥' + (moData.moGap / 10000).toFixed(1) + '万</b> 主要为佚名记录(¥' + (C.rfmAnonymous.revenueYuan / 10000).toFixed(1) + '万)及零头,故月度图合计略低于全年总数,属正常。<br>'
+    + '③ 数据跨 13 个自然月(2025.6–2026.6),首尾各含一个 6 月,占比类指标的分母含两个 6 月,趋势仅供参考。<br>'
+    + '④ RFM 仅覆盖可识别活跃会员 ' + num(rfmData.rfmKnownSum) + ' 人;沉睡/未激活会员约 ' + num(rfmData.sleeping) + ' 人未进入分群模型。'
+    + '</span>'
+    + '</div>'
+    + '</div>'
+
+    // ========== RFM 面板 ==========
+    + '<div class="panel" id="rfm">'
+    + '<div class="card">'
+    + '<h2>RFM 是什么 · 怎么分类的</h2>'
+    + '<div class="sub">用三个维度给每位会员"打分",再按高低组合划出客户类型</div>'
+    + '<div class="rfm-dim">'
+    + '<div class="d" style="background:#eff6ff;border-color:#bfdbfe"><div class="dl" style="color:#2563eb">R</div><div class="dn">最近消费 Recency</div><p>距今多久来过一次。越近说明越活跃,记"近";太久没来记"远"。</p></div>'
+    + '<div class="d" style="background:#fffbeb;border-color:#fde68a"><div class="dl" style="color:#d97706">F</div><div class="dn">消费频率 Frequency</div><p>统计期内到店次数。来得越勤越忠诚,记"高";偶尔来记"低"。</p></div>'
+    + '<div class="d" style="background:#ecfdf5;border-color:#a7f3d0"><div class="dl" style="color:#059669">M</div><div class="dn">消费金额 Monetary</div><p>累计消费金额。花得越多越有价值,记"高";花得少记"低"。</p></div>'
+    + '</div>'
+    + '<div class="note" style="background:#f8fafc;border:1px solid #e2e8f0">'
+    + '<span style="color:#475569"><b class="dark">划分规则:</b>把每位会员的 R / F / M 分别与<b>全体平均值</b>对比——高于平均记"高/近",低于平均记"低/远"。三个维度的"高低"两两组合,共 8 种,正好对应下面 8 类客户。<b>(注:均值切分在少数大客拉高平均时会让"高"组偏小,后续可改用分位数法复核。)</b></span>'
+    + '</div>'
+    + '</div>'
+
+    + '<div class="card">'
+    + '<h2>各分群规模</h2>'
+    + '<div class="sub">可识别活跃会员共 ' + num(rfmData.rfmKnownSum) + ' 人(佚名记录单列,见下)</div>'
+    + rfmBars
+    + '<div class="note" style="background:#ecfdf5;border:1px solid #a7f3d0;margin-top:6px">'
+    + '<span style="color:#065f46"><b>校验:</b>8 类合计 ' + num(rfmData.rfmKnownSum) + ' 人,加上 ' + num(rfmData.anonCount) + ' 条佚名合并记录,正好 = 活跃会员 ' + num(rfmData.active) + ' 人,数据完整无缺口。</span>'
+    + '</div>'
+    + '</div>'
+
+    + '<div class="card">'
+    + '<h2>分群明细 · 金额、客单价与运营动作</h2>'
+    + '<div class="sub">每类客户的 R/F/M 组合、实付金额合计、每次到店平均消费,以及该怎么对待</div>'
+    + rfmCards
+    + '<div class="note" style="background:#eff6ff;border:1px solid #bfdbfe;margin-top:4px">'
+    + '<span style="color:#1e3a8a"><b class="blue">读图提示:</b>「实付合计」是该类会员近一年的总贡献;「每次到店均消」反映客单价高低。可以看到高价值类(发展/挽留)虽然人少,但每次到店均消明显高于普通类——这正是把资源向他们倾斜的依据。</span>'
+    + '</div>'
+    + '</div>'
+
+    + '<div class="card">'
+    + '<h2>🎭 佚名客户(单列)</h2>'
+    + '<div class="sub">无法识别、不参与打分,仅保留记录</div>'
+    + anonCard
+    + '</div>'
+    + '</div>'
+
+    // ========== MEMBERS / 频率面板 ==========
+    + '<div class="panel" id="members">'
+    + '<div class="card">'
+    + '<h2>到店频率漏斗(RFM 中的 F 维度细看)</h2>'
+    + '<div class="sub">活跃会员' + num(rfmData.active) + '人按近一年到店次数拆分,看新客转化与留存</div>'
+    + freqChart
+    + '</div>'
+    + '<div class="note" style="background:#fffbeb;border:1px solid #fde68a">'
+    + '<div class="nt" style="color:#92400e">🎯 分析师备注</div>'
+    + '<span style="color:#78350f">"只来1次"和"2-3次"两层合计 <b>' + num(rfmData.convertible) + '人</b>,是暑期卡最该主攻的"可转化人群"——对应 RFM 里的"新客/低频客户"与"一般客户"。沉睡池' + num(rfmData.sleeping) + '人需先用"时间"字段区分 <b>"真睡着(近期才停)"</b> 与 <b>"已毕业(很久没来)"</b>,只唤醒前者。</span>'
+    + '</div>'
+    + '</div>'
+
+    // ========== 淡旺季面板 ==========
+    + '<div class="panel" id="revenue">'
+    + '<div class="card">'
+    + '<h2>📅 淡旺季分析 · ' + moData.moRows.length + '个月实收</h2>'
+    + '<div class="sub">条长 = 该月实收占合计比例 &nbsp;|&nbsp; 条内颜色 = 该月各类客户的贡献占比</div>'
+    + moBars
+    + (moData.anyApprox ? '<div class="note" style="background:#fffbeb;border:1px solid #fde68a;margin-top:6px"><span style="color:#92400e"><b>注:</b>带 <b style="color:#f59e0b">*</b> 的月份只填了实收总额,条内颜色是按"全年平均结构"<b>估算</b>的,仅供示意。</span></div>' : '')
+    + '<div class="note" style="background:#fef2f2;border:1px solid #fecaca;margin-top:6px">'
+    + '<span style="color:#991b1b"><b>重要读图前提(方法论):</b>客户分群标签是按<b>全年一次性</b>划定的,而"流失/唤回/挽留"等类别的定义本身就含「很久没来」。因此这些类别在最近几个月自然为 0——这是<b>分类定义所致,并非该群体真的在淡季消失</b>。所以本图<b>只适合横向看"新客/低频(浅蓝)"等近期活跃类的季节变化</b>,不要据此解读"流失客户在某月不见了"。</span>'
+    + '</div>'
+    + '</div>'
+
+    + '<div class="stat-grid" style="margin-bottom:16px">'
+    + '<div class="stat"><div class="v" style="color:#f59e0b">' + moData.peak.m + '</div><div class="l">最旺月(¥' + (moData.peak.tot / 10000).toFixed(1) + '万 · ' + pct(moData.peak.tot / moData.moYear, 1) + ')</div></div>'
+    + '<div class="stat"><div class="v" style="color:#60a5fa">' + moData.low.m + '</div><div class="l">最淡月(¥' + (moData.low.tot / 10000).toFixed(1) + '万 · ' + pct(moData.low.tot / moData.moYear, 1) + ')</div></div>'
+    + '<div class="stat"><div class="v" style="color:#059669">' + pct(moData.summerTot / moData.moYear, 0) + '</div><div class="l">暑期(7-8月)占合计</div></div>'
+    + '</div>'
+
+    + yoyBlock
+
+    + '<div class="card">'
+    + '<h2>颜色图例(客户类型)</h2>'
+    + '<div class="legend">' + moLegend + '</div>'
+    + '</div>'
+
+    + '<div class="note" style="background:#eff6ff;border:1px solid #bfdbfe">'
+    + '<span style="color:#1e3a8a"><b class="blue">怎么看:</b>条形越长的月份越旺。更关键的是看<b>条内"新客/低频(浅蓝)"那一段如何随季节变宽</b>——旺季它若明显加宽,说明暑假确实带来大量新客,这正是暑期卡转化的原料;若旺季主要靠"重要价值客户"(橙)撑着,则说明旺季更多是老客加倍消费,而非拉新。</span>'
+    + '</div>'
+    + '</div>'
+
+    // ========== 行动优先级面板 ==========
+    + '<div class="panel" id="plan">'
+    + '<div class="card">'
+    + '<h2>📋 行动优先级</h2>'
+    + '<div class="sub">把分群结论收口成"先做什么、对谁、靠什么依据、能换回多少、谁来做"</div>'
+    + '<div class="tbl-wrap">'
+    + '<table class="tbl">'
+    + '<thead><tr><th>优先级</th><th>动作</th><th>目标人群</th><th>决策依据</th><th>预估回报(粗估)</th><th>负责</th></tr></thead>'
+    + '<tbody>' + planRows + '</tbody>'
+    + '</table>'
+    + '</div>'
+    + '<div class="note" style="background:#fffbeb;border:1px solid #fde68a;margin-top:12px">'
+    + '<span style="color:#92400e"><b>关于"预估回报":</b>表中数字是<b>基于明确假设的粗估</b>(如"召回率 30%""单次 +¥20"),目的是让建议可被讨论和验证,而非精确预测。落地后请用实际数据回填、迭代假设——<b>写出假设</b>本身就是专业报告与口号的区别。</span>'
+    + '</div>'
+    + '</div>'
+
+    + '<div class="note" style="background:#eff6ff;border:1px solid #bfdbfe">'
+    + '<span style="color:#1e3a8a"><b class="blue">投入逻辑:</b>P0/P1 集中在"高价值召回"与"新客留存"——前者单位产出最高、后者决定盘子能否持续补充;P2 守住基本盘;P3 用近乎零成本的群发维持触达即可,不宜重投。<b>有限资源应优先砸在 P0、P1。</b></span>'
+    + '</div>'
+    + '</div>'
+
+    + '<div class="footer">'
+    + '🔒 本报告为作品集展示样例,品牌、人数、金额等均为虚构脱敏数据,不代表任何真实企业经营情况。<br>'
+    + '分析方法(RFM 分群 / 留存漏斗 / 淡旺季拆解 / 行动优先级)与可视化结构为作者原创。'
+    + '</div>';
+
+  // ── 步骤 5d：渲染到页面 ──
+  document.getElementById('app').innerHTML = HTML;
+
+  // ── 步骤 5e：标签切换逻辑 ──
+  document.querySelectorAll('.tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.tab').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById(btn.getAttribute('data-t')).classList.add('active');
+    });
+  });
+})();
+</script>
+</body>
+</html>
