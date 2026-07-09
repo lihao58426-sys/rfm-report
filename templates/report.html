@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会员价值诊断报告</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         background:#f8fafc; color:#1e293b; padding:14px; line-height:1.5; }
+  .wrap { max-width:900px; margin:0 auto; }
+  .header { background:linear-gradient(to right,#4f46e5,#3b82f6); border-radius:18px;
+            padding:22px; color:#fff; margin-bottom:18px; }
+  .header h1 { font-size:24px; }
+  .header p { color:#c7d2fe; margin-top:6px; font-size:13px; }
+  .kpi-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:18px; }
+  .kpi { background:#fff; border-radius:13px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+  .kpi .v { font-size:20px; font-weight:800; }
+  .kpi .l { font-size:12px; color:#64748b; }
+  .kpi .icon { font-size:20px; margin-bottom:6px; }
+  .card { background:#fff; border-radius:14px; padding:18px; margin-bottom:16px;
+          box-shadow:0 1px 3px rgba(0,0,0,.04); }
+  .card h2 { font-size:16px; margin-bottom:12px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { background:#f8fafc; text-align:left; padding:8px 10px; font-weight:700; color:#475569; }
+  td { padding:8px 10px; border-bottom:1px solid #f1f5f9; }
+  .tag { display:inline-block; font-size:10px; font-weight:700; padding:2px 7px;
+         border-radius:5px; color:#fff; }
+  .cohort-cell { text-align:center; font-size:11px; }
+  .cohort-hot { background:#fee2e2; }
+  .cohort-warm { background:#fef3c7; }
+  .cohort-cool { background:#f1f5f9; }
+  .note { background:#fffbeb; border:1px solid #fde68a; border-radius:13px;
+          padding:14px; font-size:12px; margin-bottom:16px; }
+  .footer { text-align:center; font-size:11px; color:#94a3b8; margin-top:22px; }
+  @media(min-width:640px){ .kpi-grid{grid-template-columns:repeat(4,1fr)} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="header">
+  <h1>📊 会员价值诊断报告</h1>
+  <p>数据范围: {{ result.summary.date_range }} | 总行数: {{ result.total_rows }} |
+     清洗后会员: {{ result.summary.total_members }} 人</p>
+</div>
+
+<!-- KPI -->
+<div class="kpi-grid">
+  <div class="kpi"><div class="icon">👥</div><div class="v">{{ result.summary.total_members }}</div><div class="l">可识别会员</div></div>
+  <div class="kpi"><div class="icon">💰</div><div class="v">¥{{ "{:,.0f}".format(result.summary.total_revenue) }}</div><div class="l">总营收</div></div>
+  <div class="kpi"><div class="icon">📊</div><div class="v">{{ result.summary.avg_m_yuan }}</div><div class="l">人均消费 ¥</div></div>
+  <div class="kpi"><div class="icon">⭐</div><div class="v">¥{{ "{:,.0f}".format(result.summary.avg_clv_yuan) }}</div><div class="l">平均 CLV</div></div>
+</div>
+
+<!-- 佚名 -->
+{% if result.summary.anonymous_records > 0 %}
+<div class="note">
+  🎭 <b>佚名客户:</b> {{ result.summary.anonymous_records }} 条记录, 合计 ¥{{ "{:,.0f}".format(result.summary.anonymous_revenue) }}，不参与 RFM 打分，单独保留。
+</div>
+{% endif %}
+
+<!-- 生命周期分布 -->
+<div class="card">
+  <h2>🔄 客户生命周期分布</h2>
+  <table>
+    <tr><th>阶段</th><th>人数</th><th>占比</th><th>人均消费</th><th>含义</th></tr>
+    {% for stage, data in result.lifecycle.items() %}
+    <tr>
+      <td><b>{{ stage }}</b></td>
+      <td>{{ data.count }}</td>
+      <td>{{ data.pct }}%</td>
+      <td>¥{{ "{:,.0f}".format(data.avg_revenue) }}</td>
+      <td style="font-size:12px;color:#64748b">
+        {% if stage == "新客期" %}刚来不久，待养成
+        {% elif stage == "成长期" %}频次上升，有潜力
+        {% elif stage == "成熟期" %}忠实老客，最核心
+        {% elif stage == "休眠期" %}以前常来最近不来了
+        {% elif stage == "流失期" %}基本不来了
+        {% else %}普通客户{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<!-- RFM 分群 -->
+<div class="card">
+  <h2>🎯 RFM 客户分群（8 类）</h2>
+  <table>
+    <tr><th>分群</th><th>人数</th><th>占比</th><th>贡献营收</th><th>营收占比</th><th>每次均消</th></tr>
+    {% for seg in result.segments %}
+    <tr>
+      <td><span class="tag" style="background:{{ seg.color }}">{{ seg.name }}</span></td>
+      <td>{{ seg.members }}</td>
+      <td>{{ seg.pct_of_total }}%</td>
+      <td>¥{{ "{:,.0f}".format(seg.revenue_yuan) }}</td>
+      <td>{{ seg.revenue_pct }}%</td>
+      <td>¥{{ "{:,.0f}".format(seg.avg_per_visit) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<!-- 留存曲线 -->
+{% if result.cohorts %}
+<div class="card">
+  <h2>📈 同批次留存曲线</h2>
+  <div class="sub" style="font-size:12px;color:#94a3b8;margin-bottom:12px">
+    行为首次到店月份，列为之后第 N 个月还有消费的人数占比。颜色越红留存越好。
+  </div>
+  <div style="overflow-x:auto">
+  <table>
+    <tr><th>首月</th><th>总人数</th>
+    {% for i in range(0, 13) %}<th class="cohort-cell">M+{{ i }}</th>{% endfor %}</tr>
+    {% for c in result.cohorts[:12] %}
+    <tr>
+      <td>{{ c.month }}</td>
+      <td>{{ c.total }}</td>
+      {% for i in range(0, 13) %}
+      {% set pct_key = "m" ~ i ~ "_pct" %}
+      {% set pct = c.get(pct_key, 0) %}
+      <td class="cohort-cell {% if pct >= 50 %}cohort-hot{% elif pct >= 25 %}cohort-warm{% elif pct > 0 %}cohort-cool{% endif %}">
+        {{ pct }}%
+      </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- 月度趋势 -->
+{% if result.monthly %}
+<div class="card">
+  <h2>📅 月度营收趋势</h2>
+  <table>
+    <tr><th>月份</th><th>营收</th></tr>
+    {% for m in result.monthly %}
+    <tr><td>{{ m.month }}</td><td>¥{{ "{:,.0f}".format(m.total) }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+{% if result.errors %}
+<div class="note">
+  ⚠️ 清洗时跳过 {{ result.errors|length }} 行异常数据（退款/空值等）
+</div>
+{% endif %}
+
+<div class="footer">
+  🔒 本报告基于真实银豹导出数据自动生成
+</div>
+
+</div>
+</body>
+</html>
