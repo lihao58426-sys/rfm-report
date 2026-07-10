@@ -16,7 +16,12 @@ from analysis import analyze
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
+from fastapi.staticfiles import StaticFiles
+
 app = FastAPI(title="会员价值诊断报告")
+
+# ECharts 等静态文件
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 绕过 Jinja2Templates 的缓存 bug，直接用 Jinja2 加载模板
 jinja_env = Environment(loader=FileSystemLoader("templates"))
@@ -48,5 +53,5 @@ async def show_report(request: Request, files: list[UploadFile] = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("启动服务器: http://localhost:8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    logger.info("启动服务器: http://localhost:8001")
+    uvicorn.run(app, host="0.0.0.0", port=8001)
