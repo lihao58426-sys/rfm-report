@@ -1,4 +1,10 @@
+# Python 缓存
+__pycache__/
+*.pyc
+
+# pytest 缓存
+.pytest_cache/
+
 # IDE
 .vscode/
 .idea/
-.pytest_cache/
