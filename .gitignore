@@ -5,6 +5,24 @@ __pycache__/
 # pytest 缓存
 .pytest_cache/
 
+# 数据库文件（含真实业务数据）
+*.db
+
+# 日志文件（含业务数据）
+*.log
+
+# Cookie / 敏感配置
+*.json
+.env
+
+# 上传的 CSV / 临时文件
+uploads/
+crawl_output.txt
+
+# 虚拟环境
+venv/
+.venv/
+
 # IDE
 .vscode/
 .idea/
