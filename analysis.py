@@ -140,9 +140,16 @@ def analyze(files: list) -> dict:
             fh = open(f, "r", encoding="utf-8-sig")
             reader = csv.DictReader(fh)
             close_later = True
-        else:
+        elif hasattr(f, 'file'):
             # FastAPI UploadFile → 读 bytes → 转字符串
             content = f.file.read()
+            if isinstance(content, bytes):
+                content = content.decode("utf-8-sig")
+            reader = csv.DictReader(content.splitlines())
+            close_later = False
+        else:
+            # BytesIO / StringIO 等普通文件对象
+            content = f.read()
             if isinstance(content, bytes):
                 content = content.decode("utf-8-sig")
             reader = csv.DictReader(content.splitlines())
@@ -234,8 +241,21 @@ def analyze(files: list) -> dict:
             errors.append(f"第 {total_rows} 行: {e}")
             continue
 
+    if not members and anonymous["records"] == 0:
+        return {"error": "清洗后无有效数据", "total_rows": total_rows}
+
+    # 全佚名 → 跳过 RFM 计算，直接返回匿名汇总
     if not members:
-        return {"error": "清洗后无有效会员数据", "total_rows": total_rows}
+        return {
+            "summary": {
+                "total_members": 0,
+                "total_revenue": round(anonymous["revenue"], 0),
+                "anonymous_records": anonymous["records"],
+                "anonymous_revenue": round(anonymous["revenue"], 0),
+            },
+            "segments": [], "lifecycle": {}, "cohorts": [], "monthly": [],
+            "total_rows": total_rows, "errors": [],
+        }
 
     # ── 第三步：排序 ──
     all_rows.sort(key=lambda r: r.get("日期", ""))
