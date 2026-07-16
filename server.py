@@ -4,8 +4,11 @@ RFM 分析报告 — FastAPI 服务器
 用法：python server.py → 浏览器打开 http://localhost:8001
 """
 
+import base64
 import html
 import logging
+import os
+import secrets
 from pathlib import Path
 
 from fastapi import FastAPI, File, Request, UploadFile
@@ -20,6 +23,32 @@ logger = logging.getLogger(__name__)
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="会员价值诊断报告")
+
+# ── 鉴权 ──
+# 会员手机号数据涉及隐私，上云前必须设 RFM_PASSWORD。
+# 本地不设时跳过鉴权，跟以前一样用。
+RFM_PASSWORD = os.getenv("RFM_PASSWORD", "")
+
+def _check_auth(request: Request) -> bool:
+    if not RFM_PASSWORD:
+        return True
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Basic "):
+        return False
+    try:
+        decoded = base64.b64decode(auth[6:]).decode("utf-8")
+        _, password = decoded.split(":", 1)
+        return secrets.compare_digest(password, RFM_PASSWORD)
+    except Exception:
+        return False
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    from fastapi.responses import JSONResponse
+    if not _check_auth(request):
+        return JSONResponse({"detail": "请输入密码"}, status_code=401,
+                          headers={"WWW-Authenticate": 'Basic realm="RFM Report"'})
+    return await call_next(request)
 
 # ECharts 等静态文件
 app.mount("/static", StaticFiles(directory="static"), name="static")
