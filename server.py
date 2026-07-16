@@ -1,7 +1,7 @@
 """
 RFM 分析报告 — FastAPI 服务器
 =============================
-用法：python server.py → 浏览器打开 http://localhost:8000
+用法：python server.py → 浏览器打开 http://localhost:8001
 """
 
 import logging
