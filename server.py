@@ -4,6 +4,7 @@ RFM 分析报告 — FastAPI 服务器
 用法：python server.py → 浏览器打开 http://localhost:8001
 """
 
+import html
 import logging
 from pathlib import Path
 
@@ -46,7 +47,7 @@ async def show_report(request: Request, files: list[UploadFile] = File(...)):
     result = analyze(files)
 
     if "error" in result:
-        return HTMLResponse(f"<h2>分析失败</h2><pre>{result['error']}</pre>")
+        return HTMLResponse(f"<h2>分析失败</h2><pre>{html.escape(result['error'])}</pre>")
 
     return render_template("report.html", request=request, result=result)
 
