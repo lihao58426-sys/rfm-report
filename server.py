@@ -109,6 +109,15 @@ async def import_and_report(request: Request, files: list[UploadFile] = File(...
                          imported=total)
 
 
+@app.get("/report/latest", response_class=HTMLResponse)
+async def latest_report(request: Request):
+    """从数据库直接出报告，不需要重新上传"""
+    result = analyze_from_db(days=0)
+    if "error" in result:
+        return HTMLResponse(f"<h2>{html.escape(result['error'])}</h2><p><a href='/'>返回上传数据</a></p>")
+    return render_template("report.html", request=request, result=result)
+
+
 @app.get("/query", response_class=HTMLResponse)
 async def query_page(request: Request):
     """会员数据查询页——按关键词/分类/时间筛选"""
