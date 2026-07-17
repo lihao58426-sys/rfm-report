@@ -122,18 +122,33 @@ def import_csv(csv_content: str) -> int:
     return count
 
 
+def _classify_member(r: int, f: int, m: float, avg_r: float, avg_f: float, avg_m: float) -> str:
+    """给单个会员打 RFM 分类标签"""
+    r_label = "近" if r < avg_r else "远"
+    f_label = "高" if f >= avg_f else "低"
+    m_label = "高" if m >= avg_m else "低"
+    if r_label == "近" and f_label == "高" and m_label == "高": return "重要价值客户"
+    if r_label == "远" and f_label == "高" and m_label == "高": return "重要唤回客户"
+    if r_label == "近" and f_label == "低" and m_label == "高": return "重要发展客户"
+    if r_label == "远" and f_label == "低" and m_label == "高": return "重要挽留客户"
+    if r_label == "近" and f_label == "高" and m_label == "低": return "一般活跃客户"
+    if r_label == "远" and f_label == "高" and m_label == "低": return "一般客户"
+    if r_label == "近" and f_label == "低" and m_label == "低": return "新客/低频客户"
+    return "流失客户"
+
+
 def query_members(days: int = 90, segment: str | None = None,
                   keyword: str | None = None) -> list[dict]:
     """
-    查询会员汇总——按会员聚合原始交易。
+    查询会员汇总——按会员聚合原始交易，并动态计算 RFM 分类标签。
 
     Args:
         days: 查最近几天，默认 90
-        segment: 可选，只查某个 RFM 分类的会员（按 RFM 规则动态分类）
+        segment: 可选，只查某个 RFM 分类的会员
         keyword: 可选，搜索会员名/手机号
 
     Returns:
-        每个会员一行，含：姓名、手机、消费次数、累计金额、首次/最近日期、客单价
+        每个会员一行，含：姓名、手机、消费次数、累计金额、首次/最近日期、客单价、距今天数、RFM分类
     """
     init_db()
     cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
@@ -161,7 +176,25 @@ def query_members(days: int = 90, segment: str | None = None,
     with _connect() as conn:
         rows = conn.execute(sql, params).fetchall()
 
-    return [dict(r) for r in rows]
+    members = [dict(r) for r in rows]
+    if not members:
+        return []
+
+    # 计算平均 R/F/M，给每个会员打分类标签
+    n = len(members)
+    avg_r = sum(m["r_days"] for m in members) / n
+    avg_f = sum(m["visit_count"] for m in members) / n
+    avg_m = sum(m["total_revenue"] for m in members) / n
+
+    for m in members:
+        m["segment"] = _classify_member(
+            m["r_days"], m["visit_count"], m["total_revenue"], avg_r, avg_f, avg_m)
+
+    # 按分类筛选
+    if segment:
+        members = [m for m in members if m["segment"] == segment]
+
+    return members
 
 
 def get_date_range() -> tuple[str, str]:

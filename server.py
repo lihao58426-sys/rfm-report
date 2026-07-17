@@ -111,14 +111,15 @@ async def import_and_report(request: Request, files: list[UploadFile] = File(...
 
 @app.get("/query", response_class=HTMLResponse)
 async def query_page(request: Request):
-    """会员数据查询页——按字段筛选、查看明细"""
+    """会员数据查询页——按关键词/分类/时间筛选"""
     from database import query_members
 
     keyword = request.query_params.get("keyword", "")
     segment = request.query_params.get("segment", "")
     days = int(request.query_params.get("days", "90"))
 
-    members = query_members(days=days, keyword=keyword or None)
+    members = query_members(days=days, keyword=keyword or None,
+                          segment=segment or None)
 
     return render_template("query.html", request=request,
                          members=members, keyword=keyword,

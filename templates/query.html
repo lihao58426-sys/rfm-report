@@ -38,7 +38,10 @@
     <button type="submit">查询</button>
   </form>
 
-  <div class="count">共 {{ members|length }} 位会员</div>
+  <div class="count">
+    共 {{ members|length }} 位会员
+    {% if segment %}<span style="color:#4f46e5"> | 分类: {{ segment }}</span>{% endif %}
+  </div>
 
   <table>
     <thead>
@@ -50,7 +53,7 @@
         <th>客单价(元)</th>
         <th>首次来访</th>
         <th>最近来访</th>
-        <th>距今天数</th>
+        <th>RFM分类</th>
       </tr>
     </thead>
     <tbody>
@@ -63,7 +66,7 @@
         <td>{{ m.avg_per_visit }}</td>
         <td>{{ m.first_date }}</td>
         <td>{{ m.last_date }}</td>
-        <td>{{ m.r_days }}天</td>
+        <td style="font-size:12px">{{ m.segment }}</td>
       </tr>
     {% endfor %}
     </tbody>
