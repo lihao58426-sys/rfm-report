@@ -140,10 +140,21 @@ async def query_page(request: Request):
     # 动态生成当前时间窗口下的分类列表（供筛选下拉框用）
     all_segments = sorted(set(m.get("segment", "") for m in query_members(days=days, keyword=None, segment=None)))
 
+    # 计算每个时间选项的实际日期范围（基于数据库最后一天）
+    from database import get_date_range, _connect
+    import datetime as _dt
+    _, last_date = get_date_range()
+    ref_date = _dt.datetime.strptime(last_date, "%Y-%m-%d") if last_date else _dt.datetime.now()
+    date_options = {}
+    for d in [30, 90, 180, 365]:
+        start = (ref_date - _dt.timedelta(days=d)).strftime("%Y-%m-%d")
+        date_options[d] = f"{start} ~ {last_date}"
+
     return render_template("query.html", request=request,
                          members=members, keyword=keyword,
                          segment=segment, days=days,
-                         all_segments=all_segments)
+                         all_segments=all_segments,
+                         date_options=date_options)
 
 
 @app.get("/query/export")

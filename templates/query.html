@@ -36,10 +36,9 @@
       {% endfor %}
     </select>
     <select name="days">
-      <option value="30" {% if days == 30 %}selected{% endif %}>最近30天</option>
-      <option value="90" {% if days == 90 %}selected{% endif %}>最近90天</option>
-      <option value="180" {% if days == 180 %}selected{% endif %}>最近180天</option>
-      <option value="365" {% if days == 365 %}selected{% endif %}>最近一年</option>
+      {% for d, label in date_options.items() %}
+      <option value="{{ d }}" {% if days == d %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
     </select>
     <button type="submit">查询</button>
     <a href="/report/latest?days={{ days }}&segment={{ segment|urlencode }}"><button type="button" style="background:#10b981;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:14px">生成分析报告 →</button></a>
