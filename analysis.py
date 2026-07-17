@@ -340,6 +340,19 @@ def analyze(files: list) -> dict:
             "r_label": "近" if members_list[0]["r"] < avg_r else "远",
             "f_label": "高" if members_list[0]["f"] >= avg_f else "低",
             "m_label": "高" if members_list[0]["m"] >= avg_m else "低",
+            # 会员明细——供 CSV 导出和企微推送使用
+            "members_detail": [
+                {
+                    "name": m.get("name", ""),
+                    "phone": m.get("phone", ""),
+                    "r": m["r"],
+                    "f": m["f"],
+                    "m": m["m"],
+                    "last_date": m.get("last_date", ""),
+                    "avg_per_visit": m.get("avg_per_visit", 0),
+                }
+                for m in members_list
+            ],
         })
 
     lifecycle_result = {}
