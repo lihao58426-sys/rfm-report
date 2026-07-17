@@ -24,7 +24,7 @@ def export_segments(result: dict, output_dir: str = ".") -> list[str]:
     if not segments:
         return []
 
-    os.makedirs(output_dir, exist_ok=True)  # 目录不存在就创建，已存在不报错
+    os.makedirs(output_dir, exist_ok=True)
     today = datetime.now().strftime("%Y%m%d")
     files = []
 
@@ -34,8 +34,7 @@ def export_segments(result: dict, output_dir: str = ".") -> list[str]:
             continue
 
         # 文件名：RFM-重要价值客户-20260717.csv
-        safe_name = seg["name"].replace("/", "-")  # 新客/低频 → 新客-低频
-        filename = f"RFM-{safe_name}-{today}.csv"
+        filename = f"RFM-{seg['name']}-{today}.csv"
         filepath = os.path.join(output_dir, filename)
 
         with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
