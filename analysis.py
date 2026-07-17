@@ -469,8 +469,22 @@ def analyze_from_db(days: int = 90) -> dict:
                 "avg_revenue": round(sum(x["m"] for x in mlist) / len(mlist), 0),
             }
 
-    from database import get_date_range
+    from database import get_date_range, _connect
     start, end = get_date_range()
+
+    # 月度营收趋势
+    monthly_revenue = {}
+    if start:
+        with _connect() as conn:
+            rows = conn.execute(
+                "SELECT SUBSTR(trans_date,1,7) as month, SUM(revenue) as total "
+                "FROM transactions WHERE trans_date >= ? "
+                "GROUP BY month ORDER BY month",
+                ((datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d"),)
+            ).fetchall()
+            for r in rows:
+                monthly_revenue[r["month"]] = r["total"]
+    monthly = [{"month": k, "total": round(v, 0)} for k, v in sorted(monthly_revenue.items())]
 
     return {
         "summary": {
@@ -488,7 +502,7 @@ def analyze_from_db(days: int = 90) -> dict:
         "segments": seg_results,
         "lifecycle": lifecycle_result,
         "cohorts": [],
-        "monthly": [],
+        "monthly": monthly,
         "total_rows": sum(x["f"] for x in rfm_list),
         "errors": [],
     }
