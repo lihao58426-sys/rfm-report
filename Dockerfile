@@ -29,7 +29,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 第6步：复制项目文件（"把菜谱搬进来"）
-COPY server.py analysis.py .
+COPY server.py analysis.py database.py .
 COPY templates/ templates/
 COPY static/ static/
 
