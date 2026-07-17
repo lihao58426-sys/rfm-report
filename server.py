@@ -15,7 +15,8 @@ from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
 
-from analysis import analyze
+from analysis import analyze, analyze_from_db
+from database import import_csv, init_db
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -79,6 +80,33 @@ async def show_report(request: Request, files: list[UploadFile] = File(...)):
         return HTMLResponse(f"<h2>分析失败</h2><pre>{html.escape(result['error'])}</pre>")
 
     return render_template("report.html", request=request, result=result)
+
+
+@app.post("/import", response_class=HTMLResponse)
+async def import_and_report(request: Request, files: list[UploadFile] = File(...)):
+    """上传 CSV → 入库 → 从数据库取数据生成 RFM 报告"""
+    if not files:
+        return HTMLResponse("<h2>请选择 CSV 文件</h2>")
+
+    init_db()
+    total = 0
+    for f in files:
+        content = f.file.read()
+        if isinstance(content, bytes):
+            content = content.decode("utf-8-sig")
+        try:
+            total += import_csv(content)
+        except ValueError as e:
+            return HTMLResponse(f"<h2>导入失败</h2><pre>{html.escape(str(e))}</pre>")
+
+    logger.info(f"导入完成: {total} 条")
+
+    result = analyze_from_db(days=90)
+    if "error" in result:
+        return HTMLResponse(f"<h2>{html.escape(result['error'])}</h2>")
+
+    return render_template("report.html", request=request, result=result,
+                         imported=total)
 
 
 if __name__ == "__main__":
