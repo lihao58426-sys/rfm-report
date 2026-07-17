@@ -101,13 +101,17 @@ def import_csv(csv_content: str) -> int:
                 continue
 
             # 解析会员: "张三（13800138000）" → 张三, 13800138000
+            # 佚名/无会员信息 → 跳过（不参与 RFM 分析）
+            if not member_raw or member_raw == "-":
+                continue
+
             import re
             match = re.search(r"（(\d{5,20})）", member_raw)
             if match:
                 phone = match.group(1)
                 name = member_raw[:match.start()].strip()
             else:
-                phone = ""
+                phone = member_raw  # 没有手机号时用会员名本身作为唯一标识
                 name = member_raw
 
             # 插入，重复跳过
@@ -176,7 +180,7 @@ def query_members(days: int = 90, segment: str | None = None,
         kw = f"%{keyword}%"
         params.extend([kw, kw])
 
-    sql += " GROUP BY phone ORDER BY total_revenue DESC"
+    sql += " GROUP BY CASE WHEN phone = '' THEN 'NONAME_' || member_name ELSE phone END ORDER BY total_revenue DESC"
 
     with _connect() as conn:
         rows = conn.execute(sql, params).fetchall()
