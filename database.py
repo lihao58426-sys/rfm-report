@@ -78,12 +78,17 @@ def import_csv(csv_content: str) -> int:
         for row in reader:
             # 清洗
             member_raw = row.get("会员", "").strip()
-            if not member_raw or member_raw == "-":
-                continue  # 跳过佚名和空会员
-
-            date_str = row.get("日期", "").strip()[:10]
+            date_str = row.get("日期", "").strip()
+            # 跳过退款/退货
+            txn_type = row.get("类型", "").strip()
+            if "退款" in txn_type or "退货" in txn_type:
+                continue
+            if not date_str:
+                continue
+            # 日期格式：兼容 YYYY-MM-DD 和 YYYY/MM/DD，带时间也行
+            date_str_clean = date_str[:10].replace("/", "-")
             try:
-                datetime.strptime(date_str, "%Y-%m-%d")
+                datetime.strptime(date_str_clean, "%Y-%m-%d")
             except ValueError:
                 continue
 
