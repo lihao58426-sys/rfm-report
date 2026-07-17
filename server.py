@@ -16,7 +16,7 @@ from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
 
 from analysis import analyze, analyze_from_db
-from database import import_csv, init_db
+from database import import_csv, init_db, list_batches, delete_batch
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -64,8 +64,10 @@ def render_template(name: str, **kwargs) -> str:
 
 
 @app.get("/", response_class=HTMLResponse)
-async def upload_page(request: Request):
-    return render_template("upload.html", request=request)
+async def home_page(request: Request):
+    """首页——批次管理 + 上传"""
+    batches = list_batches()
+    return render_template("home.html", request=request, batches=batches)
 
 
 @app.post("/report", response_class=HTMLResponse)
@@ -161,6 +163,18 @@ async def export_query(request: Request):
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=rfm_query_export.csv"},
     )
+
+
+@app.post("/batch/delete", response_class=HTMLResponse)
+async def batch_delete(request: Request):
+    """删除选中批次"""
+    form = await request.form()
+    selected = form.getlist("batches")
+    for b in selected:
+        delete_batch(b)
+    batches = list_batches()
+    return render_template("home.html", request=request, batches=batches,
+                         msg=f"已删除 {len(selected)} 个批次")
 
 
 if __name__ == "__main__":

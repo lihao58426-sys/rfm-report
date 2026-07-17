@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RFM 会员分析 — 数据管理</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:#f5f7fa; color:#1e293b; display:flex; min-height:100vh; }
+  .sidebar { width:260px; background:#fff; padding:24px; border-right:1px solid #e2e8f0; flex-shrink:0; }
+  .sidebar h2 { font-size:16px; margin-bottom:16px; }
+  .sidebar input[type=file] { width:100%; margin-bottom:12px; font-size:13px; }
+  .sidebar button { width:100%; background:#4f46e5; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:14px; margin-bottom:8px; }
+  .sidebar .hint { font-size:12px; color:#94a3b8; margin-top:8px; }
+  .main { flex:1; padding:24px; }
+  .main h1 { font-size:20px; margin-bottom:8px; }
+  .main .sub { color:#64748b; font-size:13px; margin-bottom:20px; }
+  .toolbar { display:flex; gap:10px; margin-bottom:16px; align-items:center; }
+  .toolbar button { padding:8px 18px; border-radius:6px; border:1px solid #ddd; cursor:pointer; font-size:13px; background:#fff; }
+  .toolbar .danger { color:#ef4444; border-color:#fca5a5; }
+  .toolbar .primary { background:#4f46e5; color:#fff; border:none; }
+  .msg { padding:8px 14px; background:#ecfdf5; color:#065f46; border-radius:6px; margin-bottom:12px; font-size:13px; }
+  table { width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; }
+  th, td { padding:10px 14px; text-align:left; border-bottom:1px solid#eee; font-size:13px; }
+  th { background:#f8fafc; font-weight:600; }
+  tr:hover { background:#f1f5f9; }
+  .empty { text-align:center; padding:60px; color:#94a3b8; }
+  a { color:#4f46e5; text-decoration:none; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <h2>上传数据</h2>
+  <form action="/import" method="post" enctype="multipart/form-data">
+    <input type="file" name="files" multiple accept=".csv">
+    <button type="submit">上传并导入</button>
+  </form>
+  <div class="hint">支持多文件同时上传<br>已导入的数据会自动去重</div>
+</div>
+
+<div class="main">
+  <h1>RFM 会员分析</h1>
+  <div class="sub">银豹销售数据管理 · 上传后即可进行分析</div>
+
+  {% if msg %}<div class="msg">{{ msg }}</div>{% endif %}
+
+  <form method="post" action="/batch/delete" onsubmit="return confirm('确认删除选中批次？');">
+  <div class="toolbar">
+    <a href="/report/latest"><button type="button" class="primary">会员分析</button></a>
+    <button type="submit" class="danger">删除选中</button>
+    <span style="font-size:12px;color:#94a3b8">Ctrl+点击 多选</span>
+  </div>
+
+  {% if batches %}
+  <table>
+    <thead>
+      <tr><th><input type="checkbox" onclick="var c=this.checked;document.querySelectorAll('.cb').forEach(e=>e.checked=c)"></th><th>导入时间</th><th>记录数</th><th>数据范围</th></tr>
+    </thead>
+    <tbody>
+    {% for b in batches %}
+      <tr>
+        <td><input class="cb" type="checkbox" name="batches" value="{{ b.batch }}"></td>
+        <td>{{ b.import_time }}</td>
+        <td>{{ b.records }} 条</td>
+        <td>{{ b.date_from }} ~ {{ b.date_to }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">暂无数据，请上传银豹导出的 CSV 文件</div>
+  {% endif %}
+  </form>
+</div>
+
+</body>
+</html>
