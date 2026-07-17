@@ -24,7 +24,7 @@
 </head>
 <body>
 <div class="container">
-  <a class="back" href="/report/latest">← 返回分析报告</a>
+  <a class="back" href="/">← 返回首页</a>
   <h1>会员数据查询</h1>
 
   <form class="toolbar" method="get" action="/query">
@@ -42,6 +42,7 @@
       <option value="365" {% if days == 365 %}selected{% endif %}>最近一年</option>
     </select>
     <button type="submit">查询</button>
+    <a href="/report/latest?days={{ days }}&segment={{ segment|urlencode }}"><button type="button" style="background:#10b981;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:14px">生成分析报告 →</button></a>
   </form>
 
   <div class="count">

@@ -113,11 +113,16 @@ async def import_and_report(request: Request, files: list[UploadFile] = File(...
 
 @app.get("/report/latest", response_class=HTMLResponse)
 async def latest_report(request: Request):
-    """从数据库直接出报告，不需要重新上传"""
-    result = analyze_from_db(days=0)
+    """基于查询页的筛选条件生成 RFM 报告"""
+    days = int(request.query_params.get("days", "0"))
+    segment = request.query_params.get("segment", "")
+    result = analyze_from_db(days=days)
+
     if "error" in result:
-        return HTMLResponse(f"<h2>{html.escape(result['error'])}</h2><p><a href='/'>返回上传数据</a></p>")
-    return render_template("report.html", request=request, result=result)
+        return HTMLResponse(f"<h2>{html.escape(result['error'])}</h2><p><a href='/'>返回首页</a></p>")
+
+    back_url = f"/query?days={days}&segment={segment}"
+    return render_template("report.html", request=request, result=result, back_url=back_url)
 
 
 @app.get("/query", response_class=HTMLResponse)
