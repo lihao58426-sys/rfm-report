@@ -203,6 +203,27 @@ def query_members(days: int = 90, segment: str | None = None,
     return members
 
 
+def list_batches() -> list[dict]:
+    """列出所有导入批次——每批一行：编号、时间、记录数、最早/最晚日期"""
+    init_db()
+    with _connect() as conn:
+        rows = conn.execute("""
+            SELECT batch, MIN(created_at) as import_time, COUNT(*) as records,
+                   MIN(trans_date) as date_from, MAX(trans_date) as date_to
+            FROM transactions GROUP BY batch ORDER BY import_time DESC
+        """).fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_batch(batch: str) -> int:
+    """删除指定批次，返回删除的记录数"""
+    init_db()
+    with _connect() as conn:
+        cur = conn.execute("DELETE FROM transactions WHERE batch=?", (batch,))
+        conn.commit()
+        return cur.rowcount
+
+
 def get_date_range() -> tuple[str, str]:
     """返回数据库中最早和最晚的日期"""
     init_db()
