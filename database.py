@@ -96,8 +96,7 @@ def import_csv(csv_content: str) -> int:
                 revenue = float(revenue_str)
             except ValueError:
                 revenue = 0.0
-            if revenue <= 0:
-                continue
+            # 金额可以为 0（礼品包/赠品），只过滤负数
 
             # 解析会员: "张三（13800138000）" → 张三, 13800138000
             # 佚名/无会员信息 → 跳过（不参与 RFM 分析）

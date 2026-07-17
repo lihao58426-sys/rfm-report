@@ -198,8 +198,7 @@ def analyze(files: list) -> dict:
                 continue
             trans_date = datetime.strptime(date_str[:10], "%Y-%m-%d").date()
             revenue = float(revenue_str) if revenue_str else 0.0
-            if revenue <= 0:
-                continue
+            # 金额可以为 0（礼品包/赠品），只跳过负数
 
             name, phone = _parse_member(member_raw)
 
