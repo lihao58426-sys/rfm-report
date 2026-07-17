@@ -114,14 +114,6 @@ def import_csv(csv_content: str) -> int:
                 phone = member_raw  # 没有手机号时用会员名本身作为唯一标识
                 name = member_raw
 
-            # 去重查询：同会员+同日期+同金额 → 跳过
-            existing = conn.execute(
-                "SELECT 1 FROM transactions WHERE phone=? AND trans_date=? AND revenue=? AND member_name=?",
-                (phone, date_str, revenue, name)
-            ).fetchone()
-            if existing:
-                continue
-
             conn.execute(
                 "INSERT INTO transactions (member_name, phone, trans_date, revenue, batch) "
                 "VALUES (?, ?, ?, ?, ?)",
