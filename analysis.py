@@ -47,7 +47,7 @@ def _parse_member(raw: str) -> tuple[str, str]:
     raw = raw.strip()
     if raw == "-" or not raw:
         return "佚名", ""
-    match = re.search(r"（(\d{5,20})）", raw)  # 中文括号里 5-20 位数字
+    match = re.search(r"[（(](\d{5,20})[）)]", raw)  # 兼容中英文括号
     if match:
         phone = match.group(1)
         name = raw[: match.start()].strip()
