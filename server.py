@@ -101,7 +101,7 @@ async def import_and_report(request: Request, files: list[UploadFile] = File(...
 
     logger.info(f"导入完成: {total} 条")
 
-    result = analyze_from_db(days=90)
+    result = analyze_from_db(days=0)  # 查全部数据
     if "error" in result:
         return HTMLResponse(f"<h2>{html.escape(result['error'])}</h2>")
 
