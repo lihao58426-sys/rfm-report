@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会员数据查询 — RFM</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f7fa; color: #333; padding: 20px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 22px; margin-bottom: 16px; }
+  .toolbar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+  .toolbar input, .toolbar select, .toolbar button { padding: 8px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+  .toolbar input { flex: 1; min-width: 200px; }
+  .toolbar button { background: #4f46e5; color: #fff; border: none; cursor: pointer; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+  th { background: #f8fafc; font-weight: 600; }
+  tr:hover { background: #f1f5f9; }
+  .count { color: #666; font-size: 14px; margin-bottom: 12px; }
+  a { color: #4f46e5; text-decoration: none; }
+  .back { margin-bottom: 16px; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="container">
+  <a class="back" href="/">← 返回上传页</a>
+  <h1>会员数据查询</h1>
+
+  <form class="toolbar" method="get" action="/query">
+    <input name="keyword" placeholder="搜索会员姓名或手机号" value="{{ keyword }}">
+    <select name="days">
+      <option value="30" {% if days == 30 %}selected{% endif %}>最近30天</option>
+      <option value="90" {% if days == 90 %}selected{% endif %}>最近90天</option>
+      <option value="180" {% if days == 180 %}selected{% endif %}>最近180天</option>
+      <option value="365" {% if days == 365 %}selected{% endif %}>最近一年</option>
+    </select>
+    <button type="submit">查询</button>
+  </form>
+
+  <div class="count">共 {{ members|length }} 位会员</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>会员姓名</th>
+        <th>手机号</th>
+        <th>消费次数</th>
+        <th>累计消费(元)</th>
+        <th>客单价(元)</th>
+        <th>首次来访</th>
+        <th>最近来访</th>
+        <th>距今天数</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for m in members %}
+      <tr>
+        <td>{{ m.member_name }}</td>
+        <td>{{ m.phone }}</td>
+        <td>{{ m.visit_count }}</td>
+        <td>{{ m.total_revenue }}</td>
+        <td>{{ m.avg_per_visit }}</td>
+        <td>{{ m.first_date }}</td>
+        <td>{{ m.last_date }}</td>
+        <td>{{ m.r_days }}天</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+</body>
+</html>
