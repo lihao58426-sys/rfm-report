@@ -162,13 +162,17 @@ def query_members(days: int = 90, segment: str | None = None,
                MIN(trans_date) as first_date,
                MAX(trans_date) as last_date,
                ROUND(SUM(revenue) / COUNT(*), 0) as avg_per_visit,
-               CAST(julianday('now') - julianday(MAX(trans_date)) AS INTEGER) as r_days
+               CAST(julianday((SELECT MAX(trans_date) FROM transactions)) - julianday(MAX(trans_date)) AS INTEGER) as r_days
         FROM transactions
     """
     params: list = []
 
     if days > 0:
-        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        # 以数据库中最后一天为基准往前推 days 天
+        with _connect() as conn:
+            last = conn.execute("SELECT MAX(trans_date) FROM transactions").fetchone()[0]
+        ref_date = datetime.strptime(last, "%Y-%m-%d") if last else datetime.now()
+        cutoff = (ref_date - timedelta(days=days)).strftime("%Y-%m-%d")
         sql += " WHERE trans_date >= ?"
         params.append(cutoff)
 
