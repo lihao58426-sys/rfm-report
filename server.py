@@ -126,6 +126,34 @@ async def query_page(request: Request):
                          segment=segment, days=days)
 
 
+@app.get("/query/export")
+async def export_query(request: Request):
+    """导出当前查询结果为 CSV"""
+    from database import query_members
+    import io
+
+    keyword = request.query_params.get("keyword", "")
+    segment = request.query_params.get("segment", "")
+    days = int(request.query_params.get("days", "90"))
+
+    members = query_members(days=days, keyword=keyword or None,
+                          segment=segment or None)
+
+    output = io.StringIO()
+    output.write("会员姓名,手机号,消费次数,累计消费(元),客单价(元),首次来访,最近来访,RFM分类\n")
+    for m in members:
+        output.write(f'{m["member_name"]},{m["phone"]},{m["visit_count"]},'
+                    f'{m["total_revenue"]},{m["avg_per_visit"]},'
+                    f'{m["first_date"]},{m["last_date"]},{m["segment"]}\n')
+
+    from fastapi.responses import Response
+    return Response(
+        content=output.getvalue().encode("utf-8-sig"),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=rfm_query_export.csv"},
+    )
+
+
 if __name__ == "__main__":
     import uvicorn
     logger.info("启动服务器: http://localhost:8001")

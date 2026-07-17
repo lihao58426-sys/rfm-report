@@ -41,6 +41,9 @@
   <div class="count">
     共 {{ members|length }} 位会员
     {% if segment %}<span style="color:#4f46e5"> | 分类: {{ segment }}</span>{% endif %}
+    {% if members %}
+    <a href="/query/export?keyword={{ keyword|urlencode }}&segment={{ segment|urlencode }}&days={{ days }}" style="margin-left:16px">导出 CSV ↓</a>
+    {% endif %}
   </div>
 
   <table>
