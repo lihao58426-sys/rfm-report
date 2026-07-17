@@ -29,6 +29,12 @@
 
   <form class="toolbar" method="get" action="/query">
     <input name="keyword" placeholder="搜索会员姓名或手机号" value="{{ keyword }}">
+    <select name="segment">
+      <option value="">全部分类</option>
+      {% for s in all_segments %}
+      <option value="{{ s }}" {% if segment == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
     <select name="days">
       <option value="30" {% if days == 30 %}selected{% endif %}>最近30天</option>
       <option value="90" {% if days == 90 %}selected{% endif %}>最近90天</option>

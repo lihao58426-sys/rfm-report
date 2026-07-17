@@ -79,7 +79,7 @@
 <div class="card">
   <h2>📋 分群明细</h2>
   <table>
-    <tr><th>分群</th><th>人数</th><th>占比</th><th>贡献营收</th><th>营收占比</th><th>每次均消</th><th>R/F/M</th><th></th></tr>
+    <tr><th>分群</th><th>人数</th><th>占比</th><th>贡献营收</th><th>营收占比</th><th>每次均消</th><th>R/F/M</th></tr>
     {% for seg in result.segments %}
     <tr>
       <td><span class="tag" style="background:{{ seg.color }}">{{ seg.name }}</span></td>
@@ -89,10 +89,13 @@
       <td>{{ seg.revenue_pct }}%</td>
       <td>¥{{ "{:,.0f}".format(seg.avg_per_visit) }}</td>
       <td style="font-size:11px">R{{ seg.r_label }} F{{ seg.f_label }} M{{ seg.m_label }}</td>
-      <td><a href="/query?segment={{ seg.name|urlencode }}">查看详情 →</a></td>
     </tr>
     {% endfor %}
   </table>
+  <div style="margin-top:16px">
+    <a href="/query"><button style="background:#4f46e5;color:#fff;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px">查看会员明细</button></a>
+    <span style="font-size:12px;color:#94a3b8;margin-left:10px">可按时间和分类筛选后导出</span>
+  </div>
 </div>
 
 <!-- 图3: 留存曲线 -->

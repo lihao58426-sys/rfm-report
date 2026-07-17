@@ -122,7 +122,7 @@ async def latest_report(request: Request):
 
 @app.get("/query", response_class=HTMLResponse)
 async def query_page(request: Request):
-    """会员数据查询页——按关键词/分类/时间筛选"""
+    """会员数据查询页——选时间范围动态重算 RFM + 分类筛选"""
     from database import query_members
 
     keyword = request.query_params.get("keyword", "")
@@ -132,9 +132,13 @@ async def query_page(request: Request):
     members = query_members(days=days, keyword=keyword or None,
                           segment=segment or None)
 
+    # 动态生成当前时间窗口下的分类列表（供筛选下拉框用）
+    all_segments = sorted(set(m.get("segment", "") for m in query_members(days=days, keyword=None, segment=None)))
+
     return render_template("query.html", request=request,
                          members=members, keyword=keyword,
-                         segment=segment, days=days)
+                         segment=segment, days=days,
+                         all_segments=all_segments)
 
 
 @app.get("/query/export")
