@@ -386,7 +386,8 @@ def analyze(files: list) -> dict:
     }
 
 
-def analyze_from_db(days: int = 90) -> dict:
+def analyze_from_db(days: int = 0) -> dict:
+    """从数据库读取分析。days=0 表示查全部数据。"""
     """从数据库读取数据后跑 RFM 分析。跟 analyze() 返回相同格式。
 
     用于 RFM 2.0——数据已入库，不依赖上传文件。

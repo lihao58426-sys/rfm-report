@@ -164,8 +164,6 @@ def query_members(days: int = 90, segment: str | None = None,
         每个会员一行，含：姓名、手机、消费次数、累计金额、首次/最近日期、客单价、距今天数、RFM分类
     """
     init_db()
-    cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-
     sql = """
         SELECT member_name, phone,
                COUNT(*) as visit_count,
@@ -175,9 +173,13 @@ def query_members(days: int = 90, segment: str | None = None,
                ROUND(SUM(revenue) / COUNT(*), 0) as avg_per_visit,
                CAST(julianday('now') - julianday(MAX(trans_date)) AS INTEGER) as r_days
         FROM transactions
-        WHERE trans_date >= ?
     """
-    params: list = [cutoff]
+    params: list = []
+
+    if days > 0:
+        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        sql += " WHERE trans_date >= ?"
+        params.append(cutoff)
 
     if keyword:
         sql += " AND (member_name LIKE ? OR phone LIKE ?)"
