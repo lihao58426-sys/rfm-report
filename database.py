@@ -106,7 +106,8 @@ def import_csv(csv_content: str) -> int:
                 continue
 
             import re
-            match = re.search(r"（(\d{5,20})）", member_raw)
+            # 兼容中文括号（）和英文括号()
+            match = re.search(r"[（(](\d{5,20})[）)]", member_raw)
             if match:
                 phone = match.group(1)
                 name = member_raw[:match.start()].strip()
