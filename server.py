@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
 
 from analysis import analyze
+from export_csv import export_segments
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -79,6 +80,26 @@ async def show_report(request: Request, files: list[UploadFile] = File(...)):
         return HTMLResponse(f"<h2>分析失败</h2><pre>{html.escape(result['error'])}</pre>")
 
     return render_template("report.html", request=request, result=result)
+
+
+@app.post("/export", response_class=HTMLResponse)
+async def export_csv_files(request: Request, files: list[UploadFile] = File(...)):
+    """分析 + 导出分类 CSV 文件"""
+    if not files:
+        return HTMLResponse("<h2>请选择 CSV 文件</h2>")
+
+    result = analyze(files)
+    if "error" in result:
+        return HTMLResponse(f"<h2>分析失败</h2><pre>{html.escape(result['error'])}</pre>")
+
+    output_dir = "exports"
+    saved = export_segments(result, output_dir)
+
+    lines = [f"<h2>导出完成，共 {len(saved)} 个文件</h2>", "<ul>"]
+    for p in saved:
+        lines.append(f"<li>{p}</li>")
+    lines.append("</ul>")
+    return HTMLResponse("\n".join(lines))
 
 
 if __name__ == "__main__":
