@@ -84,7 +84,6 @@ def import_csv(csv_content: str) -> int:
                 continue
             if not date_str:
                 continue
-            # 日期格式：兼容 YYYY-MM-DD 和 YYYY/MM/DD，带时间也行
             date_str_clean = date_str[:10].replace("/", "-")
             try:
                 datetime.strptime(date_str_clean, "%Y-%m-%d")
@@ -98,20 +97,21 @@ def import_csv(csv_content: str) -> int:
                 revenue = 0.0
             # 金额可以为 0（礼品包/赠品），只过滤负数
 
-            # 解析会员: "张三（13800138000）" → 张三, 13800138000
-            # 佚名/无会员信息 → 跳过（不参与 RFM 分析）
-            if not member_raw or member_raw == "-":
-                continue
-
             import re
-            # 兼容中文括号（）和英文括号()
-            match = re.search(r"[（(](\d{5,20})[）)]", member_raw)
-            if match:
-                phone = match.group(1)
-                name = member_raw[:match.start()].strip()
+            # 佚名 — 保留营收数据，但不参与 RFM 分群
+            if not member_raw or member_raw == "-":
+                name = "佚名"
+                phone = "佚名"  # GROUP BY 时佚名聚合成一条
             else:
-                phone = member_raw  # 没有手机号时用会员名本身作为唯一标识
-                name = member_raw
+                # 解析会员: "张三（13800138000）" → 张三, 13800138000
+                # 兼容中文括号（）和英文括号()
+                match = re.search(r"[（(](\d{5,20})[）)]", member_raw)
+                if match:
+                    phone = match.group(1)
+                    name = member_raw[:match.start()].strip()
+                else:
+                    phone = member_raw
+                    name = member_raw
 
             conn.execute(
                 "INSERT INTO transactions (member_name, phone, trans_date, revenue, batch) "

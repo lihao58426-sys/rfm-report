@@ -387,38 +387,37 @@ def analyze(files: list) -> dict:
 
 def analyze_from_db(days: int = 0) -> dict:
     """从数据库读取分析。days=0 表示查全部数据。"""
-    """从数据库读取数据后跑 RFM 分析。跟 analyze() 返回相同格式。
-
-    用于 RFM 2.0——数据已入库，不依赖上传文件。
-    """
-    from database import query_members
+    from database import query_members, _connect, get_date_range
 
     members_list = query_members(days=days)
     if not members_list:
         return {"error": f"数据库中暂无最近 {days} 天的数据，请先上传 CSV 导入"}
 
-    # 把数据库结果转成跟 CSV 模式一样的 rfm_list 结构
+    # 分离佚名和可识别会员
     rfm_list = []
+    anonymous_revenue = 0.0
+    anonymous_count = 0
     for m in members_list:
-        r = m["r_days"]
-        f = m["visit_count"]
-        revenue = m["total_revenue"]
+        if m["phone"] == "佚名":
+            anonymous_revenue += m["total_revenue"]
+            anonymous_count += 1
+            continue  # 佚名不参与 RFM 分群
         rfm_list.append({
-            "name": m["member_name"],
-            "phone": m["phone"],
-            "r": r,
-            "f": f,
-            "m": revenue,
-            "last_date": m["last_date"],
-            "first_date": m["first_date"],
+            "name": m["member_name"], "phone": m["phone"],
+            "r": m["r_days"], "f": m["visit_count"], "m": m["total_revenue"],
+            "last_date": m["last_date"], "first_date": m["first_date"],
             "avg_per_visit": m["avg_per_visit"],
         })
 
     n = len(rfm_list)
+    if n == 0:
+        return {"error": "无可识别会员数据", "summary": {"total_members": 0}}
+
     avg_r = sum(x["r"] for x in rfm_list) / n
     avg_f = sum(x["f"] for x in rfm_list) / n
     avg_m = sum(x["m"] for x in rfm_list) / n
-    total_revenue = sum(x["m"] for x in rfm_list)
+    identifiable_revenue = sum(x["m"] for x in rfm_list)
+    total_revenue = identifiable_revenue + anonymous_revenue
 
     # ── RFM 8 类分群 ──
     segments_data = {name: [] for name in SEGMENT_NAMES}
@@ -439,7 +438,7 @@ def analyze_from_db(days: int = 0) -> dict:
         total_clv += member["clv"]
     avg_clv = round(total_clv / n, 0) if n > 0 else 0
 
-    # ── 构建结果（跟 analyze() 相同格式）──
+    # ── 构建结果 ──
     seg_results = []
     for seg_name in SEGMENT_NAMES:
         mlist = segments_data[seg_name]
@@ -447,13 +446,12 @@ def analyze_from_db(days: int = 0) -> dict:
             continue
         seg_revenue = sum(x["m"] for x in mlist)
         seg_results.append({
-            "name": seg_name,
-            "members": len(mlist),
+            "name": seg_name, "members": len(mlist),
             "color": SEGMENT_COLORS.get(seg_name, "#ccc"),
             "revenue_yuan": round(seg_revenue, 0),
             "avg_per_visit": round(seg_revenue / len(mlist), 0),
             "pct_of_total": round(len(mlist) / n * 100, 1),
-            "revenue_pct": round(seg_revenue / total_revenue * 100, 1),
+            "revenue_pct": round(seg_revenue / total_revenue * 100, 1) if total_revenue > 0 else 0,
             "r_label": "近" if mlist[0]["r"] < avg_r else "远",
             "f_label": "高" if mlist[0]["f"] >= avg_f else "低",
             "m_label": "高" if mlist[0]["m"] >= avg_m else "低",
@@ -492,8 +490,8 @@ def analyze_from_db(days: int = 0) -> dict:
             "avg_f_times": round(avg_f, 1),
             "avg_m_yuan": round(avg_m, 0),
             "avg_clv_yuan": avg_clv,
-            "anonymous_records": 0,
-            "anonymous_revenue": 0,
+            "anonymous_records": anonymous_count,
+            "anonymous_revenue": round(anonymous_revenue, 0),
             "date_range": f"{start} ~ {end}" if start else "",
         },
         "segments": seg_results,
