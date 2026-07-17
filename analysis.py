@@ -341,15 +341,7 @@ def analyze(files: list) -> dict:
             "m_label": "高" if members_list[0]["m"] >= avg_m else "低",
         })
 
-    lifecycle_result = {}
-    for stage in ["新客期", "成长期", "成熟期", "休眠期", "流失期", "稳定期"]:
-        members_list = lifecycle_stages.get(stage, [])
-        if members_list:
-            lifecycle_result[stage] = {
-                "count": len(members_list),
-                "pct": round(len(members_list) / n * 100, 1),
-                "avg_revenue": round(sum(x["m"] for x in members_list) / len(members_list), 0),
-            }
+    lifecycle_result = {}  # 暂时关闭
 
     cohort_result = []
     for month in sorted(cohorts.keys()):
@@ -425,11 +417,7 @@ def analyze_from_db(days: int = 0) -> dict:
         seg = _classify_rfm(member["r"], member["f"], member["m"], avg_r, avg_f, avg_m)
         segments_data[seg].append(member)
 
-    # ── 生命周期 ──
-    lifecycle_stages = defaultdict(list)
-    for member in rfm_list:
-        stage = _classify_lifecycle(member["r"], member["f"], member["m"], avg_m)
-        lifecycle_stages[stage].append(member)
+    # ── 生命周期（暂时关闭，待后续补完）──
 
     # ── CLV ──
     total_clv = 0.0
@@ -457,15 +445,7 @@ def analyze_from_db(days: int = 0) -> dict:
             "m_label": "高" if mlist[0]["m"] >= avg_m else "低",
         })
 
-    lifecycle_result = {}
-    for stage in ["新客期", "成长期", "成熟期", "休眠期", "流失期", "稳定期"]:
-        mlist = lifecycle_stages.get(stage, [])
-        if mlist:
-            lifecycle_result[stage] = {
-                "count": len(mlist),
-                "pct": round(len(mlist) / n * 100, 1),
-                "avg_revenue": round(sum(x["m"] for x in mlist) / len(mlist), 0),
-            }
+    lifecycle_result = {}  # 暂时关闭
 
     from database import get_date_range, _connect
     start, end = get_date_range()

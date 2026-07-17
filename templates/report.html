@@ -66,14 +66,11 @@
   <div id="chart-monthly" class="chart"></div>
 </div>
 
-<!-- 图2: RFM分群饼图 + 生命周期分布 -->
+<!-- RFM分群饼图 -->
 <div class="card">
-  <h2>🎯 RFM 客户分群</h2>
-  <div class="sub">左边：8类分群收入占比 | 右边：生命周期阶段分布</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-    <div id="chart-rfm" class="chart"></div>
-    <div id="chart-lifecycle" class="chart"></div>
-  </div>
+  <h2>RFM 客户分群</h2>
+  <div class="sub">8类分群收入占比</div>
+  <div id="chart-rfm" class="chart"></div>
 </div>
 
 <!-- RFM 明细表 -->
@@ -102,32 +99,6 @@
   <h2>📈 同批次留存曲线</h2>
   <div class="sub">每一条线 = 同一个月份首次到店的客户。Y轴 = 还有多少人在持续消费。</div>
   <div id="chart-cohort" class="chart-tall"></div>
-</div>
-{% endif %}
-
-<!-- 生命周期明细 -->
-{% if result.lifecycle %}
-<div class="card">
-  <h2>🔄 客户生命周期分布</h2>
-  <table>
-    <tr><th>阶段</th><th>人数</th><th>占比</th><th>人均消费</th><th>运营策略</th></tr>
-    {% for stage, data in result.lifecycle.items() %}
-    <tr>
-      <td><b>{{ stage }}</b></td>
-      <td>{{ data.count }}</td>
-      <td>{{ data.pct }}%</td>
-      <td>¥{{ "{:,.0f}".format(data.avg_revenue) }}</td>
-      <td style="font-size:12px;color:#64748b">
-        {% if stage == "新客期" %}推次卡/暑期卡，养成到店习惯
-        {% elif stage == "成长期" %}连续到店奖励，加速习惯养成
-        {% elif stage == "成熟期" %}专属权益，别让他们流失
-        {% elif stage == "休眠期" %}<b style="color:#ef4444">立刻召回</b>：优惠券+定向触达
-        {% elif stage == "流失期" %}低成本群发，不重投
-        {% else %}按需维护{% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
 </div>
 {% endif %}
 
@@ -182,29 +153,6 @@ var segColors = {
 
   chart.setOption({
     tooltip: { trigger:'item', formatter:function(p){ return p.name+'<br/>¥'+p.value.toLocaleString()+' ('+p.percent+'%)'; }},
-    legend: { orient:'vertical', right:'5%', top:'center', textStyle:{fontSize:10} },
-    series: [{
-      type:'pie', radius:['35%','65%'], center:['35%','50%'],
-      data:data,
-      label:{formatter:'{b}\n{d}%',fontSize:10}
-    }]
-  });
-  window.addEventListener('resize', function(){ chart.resize(); });
-})();
-
-// ── 图2b: 生命周期饼图 ──
-(function(){
-  var dom = document.getElementById('chart-lifecycle');
-  var chart = echarts.init(dom);
-  var colors = { '新客期':'#38bdf8','成长期':'#10b981','成熟期':'#f59e0b','休眠期':'#f97316','流失期':'#cbd5e1','稳定期':'#60a5fa' };
-  var data = [
-    {% for stage, d in result.lifecycle.items() %}
-    { value:{{ d.count }}, name:'{{ stage }}', itemStyle:{color:colors['{{ stage }}']||'#ccc'} }{% if not loop.last %},{% endif %}
-    {% endfor %}
-  ];
-
-  chart.setOption({
-    tooltip: { trigger:'item', formatter:function(p){ return p.name+': '+p.value+'人 ('+p.percent+'%)'; }},
     legend: { orient:'vertical', right:'5%', top:'center', textStyle:{fontSize:10} },
     series: [{
       type:'pie', radius:['35%','65%'], center:['35%','50%'],
