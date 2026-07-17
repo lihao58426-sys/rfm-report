@@ -384,3 +384,111 @@ def analyze(files: list) -> dict:
         "total_rows": total_rows,
         "errors": errors[:10],
     }
+
+
+def analyze_from_db(days: int = 90) -> dict:
+    """从数据库读取数据后跑 RFM 分析。跟 analyze() 返回相同格式。
+
+    用于 RFM 2.0——数据已入库，不依赖上传文件。
+    """
+    from database import query_members
+
+    members_list = query_members(days=days)
+    if not members_list:
+        return {"error": f"数据库中暂无最近 {days} 天的数据，请先上传 CSV 导入"}
+
+    # 把数据库结果转成跟 CSV 模式一样的 rfm_list 结构
+    rfm_list = []
+    for m in members_list:
+        r = m["r_days"]
+        f = m["visit_count"]
+        revenue = m["total_revenue"]
+        rfm_list.append({
+            "name": m["member_name"],
+            "phone": m["phone"],
+            "r": r,
+            "f": f,
+            "m": revenue,
+            "last_date": m["last_date"],
+            "first_date": m["first_date"],
+            "avg_per_visit": m["avg_per_visit"],
+        })
+
+    n = len(rfm_list)
+    avg_r = sum(x["r"] for x in rfm_list) / n
+    avg_f = sum(x["f"] for x in rfm_list) / n
+    avg_m = sum(x["m"] for x in rfm_list) / n
+    total_revenue = sum(x["m"] for x in rfm_list)
+
+    # ── RFM 8 类分群 ──
+    segments_data = {name: [] for name in SEGMENT_NAMES}
+    for member in rfm_list:
+        seg = _classify_rfm(member["r"], member["f"], member["m"], avg_r, avg_f, avg_m)
+        segments_data[seg].append(member)
+
+    # ── 生命周期 ──
+    lifecycle_stages = defaultdict(list)
+    for member in rfm_list:
+        stage = _classify_lifecycle(member["r"], member["f"], member["m"], avg_m)
+        lifecycle_stages[stage].append(member)
+
+    # ── CLV ──
+    total_clv = 0.0
+    for member in rfm_list:
+        member["clv"] = _calc_clv(member, avg_f)
+        total_clv += member["clv"]
+    avg_clv = round(total_clv / n, 0) if n > 0 else 0
+
+    # ── 构建结果（跟 analyze() 相同格式）──
+    seg_results = []
+    for seg_name in SEGMENT_NAMES:
+        mlist = segments_data[seg_name]
+        if not mlist:
+            continue
+        seg_revenue = sum(x["m"] for x in mlist)
+        seg_results.append({
+            "name": seg_name,
+            "members": len(mlist),
+            "color": SEGMENT_COLORS.get(seg_name, "#ccc"),
+            "revenue_yuan": round(seg_revenue, 0),
+            "avg_per_visit": round(seg_revenue / len(mlist), 0),
+            "pct_of_total": round(len(mlist) / n * 100, 1),
+            "revenue_pct": round(seg_revenue / total_revenue * 100, 1),
+            "r_label": "近" if mlist[0]["r"] < avg_r else "远",
+            "f_label": "高" if mlist[0]["f"] >= avg_f else "低",
+            "m_label": "高" if mlist[0]["m"] >= avg_m else "低",
+        })
+
+    lifecycle_result = {}
+    for stage in ["新客期", "成长期", "成熟期", "休眠期", "流失期", "稳定期"]:
+        mlist = lifecycle_stages.get(stage, [])
+        if mlist:
+            lifecycle_result[stage] = {
+                "count": len(mlist),
+                "pct": round(len(mlist) / n * 100, 1),
+                "avg_revenue": round(sum(x["m"] for x in mlist) / len(mlist), 0),
+            }
+
+    from database import get_date_range
+    start, end = get_date_range()
+
+    return {
+        "summary": {
+            "total_members": n,
+            "total_revenue": round(total_revenue, 0),
+            "total_transactions": sum(x["f"] for x in rfm_list),
+            "avg_r_days": round(avg_r, 0),
+            "avg_f_times": round(avg_f, 1),
+            "avg_m_yuan": round(avg_m, 0),
+            "avg_clv_yuan": avg_clv,
+            "anonymous_records": 0,
+            "anonymous_revenue": 0,
+            "date_range": f"{start} ~ {end}" if start else "",
+        },
+        "segments": seg_results,
+        "lifecycle": lifecycle_result,
+        "cohorts": [],
+        "monthly": [],
+        "total_rows": sum(x["f"] for x in rfm_list),
+        "errors": [],
+    }
