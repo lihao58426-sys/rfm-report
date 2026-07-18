@@ -29,12 +29,6 @@
 
   <form class="toolbar" method="get" action="/query">
     <input name="keyword" placeholder="搜索会员姓名或手机号" value="{{ keyword }}">
-    <select name="segment">
-      <option value="">全部分类</option>
-      {% for s in all_segments %}
-      <option value="{{ s }}" {% if segment == s %}selected{% endif %}>{{ s }}</option>
-      {% endfor %}
-    </select>
     <select name="days">
       {% for d, label in date_options.items() %}
       <option value="{{ d }}" {% if days == d %}selected{% endif %}>{{ label }}</option>
@@ -44,12 +38,26 @@
     <a href="/report/latest?days={{ days }}&segment={{ segment|urlencode }}"><button type="button" style="background:#10b981;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:14px">生成分析报告 →</button></a>
   </form>
 
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <span style="font-size:14px;color:#666">会员分类筛选：</span>
+    <form method="get" action="/query" style="display:flex;gap:10px;align-items:center">
+      <input type="hidden" name="keyword" value="{{ keyword }}">
+      <input type="hidden" name="days" value="{{ days }}">
+      <select name="segment" onchange="this.form.submit()" style="padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px">
+        <option value="">全部分类</option>
+        {% for s in all_segments %}
+        <option value="{{ s }}" {% if segment == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    {% if members %}
+    <a href="/query/export?keyword={{ keyword|urlencode }}&segment={{ segment|urlencode }}&days={{ days }}" style="margin-left:auto">导出 CSV ↓</a>
+    {% endif %}
+  </div>
+
   <div class="count">
     共 {{ members|length }} 位会员
-    {% if segment %}<span style="color:#4f46e5"> | 分类: {{ segment }}</span>{% endif %}
-    {% if members %}
-    <a href="/query/export?keyword={{ keyword|urlencode }}&segment={{ segment|urlencode }}&days={{ days }}" style="margin-left:16px">导出 CSV ↓</a>
-    {% endif %}
+    {% if segment %}<span style="color:#4f46e5"> | 当前分类: {{ segment }}</span>{% endif %}
   </div>
 
   <table>
