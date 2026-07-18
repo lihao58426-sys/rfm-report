@@ -22,7 +22,7 @@ from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = "rfm_data.db"
+DB_PATH = "data/rfm_data.db"
 
 
 def _connect() -> sqlite3.Connection:

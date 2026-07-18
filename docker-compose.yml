@@ -14,4 +14,4 @@ services:
     environment:
       - RFM_PASSWORD=${RFM_PASSWORD:-}   # 不设则跳过鉴权
     volumes:
-      - ./rfm_data.db:/app/rfm_data.db   # SQLite 数据持久化，容器删了数据还在
+      - ./data:/app/data                  # SQLite 数据持久化（目录挂载，支持 journal）
