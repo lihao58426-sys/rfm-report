@@ -448,7 +448,14 @@ def analyze_from_db(days: int = 0) -> dict:
     lifecycle_result = {}  # 暂时关闭
 
     from database import get_date_range, _connect
-    start, end = get_date_range()
+    start, end = get_date_range()  # 全库日期范围（先取，后面可能被 days 限制覆盖）
+
+    # 如果选了时间窗口，日期范围用筛后数据的实际范围
+    if days > 0 and rfm_list:
+        filtered_dates = [m["last_date"] for m in rfm_list] + [m["first_date"] for m in rfm_list if m["first_date"]]
+        if filtered_dates:
+            start = min(filtered_dates)
+            end = max(filtered_dates)
 
     # 月度营收趋势（全部数据，不受 days 限制）
     monthly_revenue = {}
