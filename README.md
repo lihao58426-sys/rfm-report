@@ -1,62 +1,66 @@
 # RFM 客户价值分析报告
 
-纯手写 Vanilla JS + CSS 的 RFM 客户价值分析系统。支持上传银豹 CSV → 自动 RFM 分析 → 8 类分群 → 生命周期 → CLV 估算 → 留存曲线 → 浏览器查看完整报告。
+某收银系统会员消费 CSV → RFM 8 类分群 + 数据分析 + 会员明细查询 + CSV 导出。
 
-## 两种模式
+> 数据存储在 SQLite，永久保存。每次分析基于所选时间窗口动态计算——同一会员在不同时间段分类可能不同。
 
-| 模式 | 入口 | 用途 |
-|------|------|------|
-| 静态报告 | `index.html` | 脱敏样例展示（数据写死在 config.js） |
-| 在线分析 | `python server.py` | 上传真实 CSV → 自动出报告（FastAPI 后端） |
+## 快速开始
+
+```bash
+pip install -r requirements.txt
+python server.py
+# 浏览器打开 http://localhost:8001
+```
 
 ## 功能
 
-### 静态版（index.html）
-- RFM 8 类客户分群 + 可视化
-- 月度淡旺季堆叠柱状图
-- 行动优先级矩阵（P0-P3）+ ROI 估算
-- 响应式设计（PC + 手机）
+- 上传某收银系统 CSV（支持多文件合并，自动去重表头）
+- 数据清洗：过滤退款、日期兼容、中英文括号解析、佚名单独统计
+- **RFM 分析** — 按手机号分组 → R/F/M 打分 → 8 类分群（动态计算，不存库）
+- **会员查询页** — 选时间范围（动态重算 RFM） + 分类筛选 + 关键词搜索 → 导出 CSV
+- **数据管理首页** — 批次列表 + 多选删除 + 侧边上传
+- **月度营收趋势** — 全量数据自动汇总
+- pytest 测试（38 用例）
 
-### 在线分析版（python server.py）
-- 上传银豹 CSV（支持多文件合并，自动去重表头）
-- 数据清洗：过滤退款/空会员/异常金额，佚名客户单独汇总
-- **RFM 分析** — 按手机号分组 → R/F/M 打分 → 8 类分群
-- **客户生命周期** — 新客→成长→成熟→休眠→流失，每阶段策略建议
-- **CLV 估算** — 客户终身价值，知道一个新客值多少钱
-- **留存曲线** — 同批次新客每月留存率，区分"真客户"和"凑热闹"
-- **月度营收趋势** — 12+ 个月自动汇总
+## Docker 部署
+
+```bash
+docker compose up -d --build
+# 打开 http://localhost:8001
+```
+
+## 安全
+
+- HTTP Basic Auth（RFM_PASSWORD 环境变量控制）
+- XSS 防护（html.escape）
+- 会员手机号数据保护
+
+## 在线 Demo
+
+https://你的域名:8001（备案后开放）
 
 ## 技术栈
 
-### 前端
-Vanilla JS · CSS · HTML5 · Jinja2 模板
-
-### 后端
-Python · FastAPI · RFM 分析模型 · CSV 解析
-
-## 使用
-
-```bash
-# 在线分析模式
-pip install fastapi uvicorn python-multipart jinja2
-python server.py
-# 浏览器打开 http://localhost:8000 → 上传 CSV → 看报告
-```
+Python · FastAPI · SQLite · PyTest · Docker · Jinja2 · ECharts
 
 ## 项目结构
 
 ```
 rfm_report/
-├── index.html           # 静态报告（脱敏样例）
-├── style.css / rfm.js / charts.js / config.js  # 静态版前端
-├── analysis.py          # RFM + 生命周期 + CLV + 留存曲线 引擎
-├── server.py            # FastAPI 服务器
-├── templates/
-│   ├── upload.html      # 上传页面
-│   └── report.html      # 在线报告模板
-└── pyproject.toml
+├── server.py              # FastAPI（5 个路由）
+├── analysis.py            # RFM 引擎 + 数据库驱动分析
+├── database.py            # SQLite · CSV 导入清洗 · 批次管理 · 会员聚合查询
+├── templates/             # home(数据管理) / report(分析报告) / query(会员查询)
+├── static/                # echarts.min.js
+├── tests/                 # 38 用例全绿
+├── docker-compose.yml     # 含 DB 卷挂载
+└── Dockerfile
 ```
 
-## 设计理念
+## 版本
 
-不只是展示数据——展示商业分析能力和可落地的运营建议。每张图对应一个老板要做的决策。
+V2.0 — 数据库持久化 + 数据管理首页 + 动态查询 + 分类筛选 + CSV 导出
+
+## License
+
+MIT
