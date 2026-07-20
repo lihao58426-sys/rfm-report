@@ -25,6 +25,10 @@ from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="会员价值诊断报告")
 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 # ── 鉴权 ──
 # 会员手机号数据涉及隐私，上云前必须设 RFM_PASSWORD。
 # 本地不设时跳过鉴权，跟以前一样用。
@@ -46,6 +50,8 @@ def _check_auth(request: Request) -> bool:
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     from fastapi.responses import JSONResponse
+    if request.url.path == "/health":
+        return await call_next(request)
     if not _check_auth(request):
         return JSONResponse({"detail": "请输入密码"}, status_code=401,
                           headers={"WWW-Authenticate": 'Basic realm="RFM Report"'})
