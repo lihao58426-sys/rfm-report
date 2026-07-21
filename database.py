@@ -16,6 +16,7 @@ RFM 数据存储 — 上传 CSV → 清洗入库 → 长期保存
 import csv
 import io
 import logging
+import os
 import sqlite3
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -33,6 +34,7 @@ def _connect() -> sqlite3.Connection:
 
 def init_db() -> None:
     """建表（表不存在就创建）"""
+    os.makedirs("data", exist_ok=True)  # git 不跟踪空目录，先确保 data/ 存在
     with _connect() as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS transactions (
