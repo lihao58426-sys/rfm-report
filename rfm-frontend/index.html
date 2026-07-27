@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFM 客户分析</title>
+    <script src="/static/vue.global.prod.js"></script>
+    <script src="/static/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; color: #333; }
+        #app { max-width: 1100px; margin: 0 auto; padding: 28px 20px; }
+        h1 { font-size: 22px; margin-bottom: 6px; }
+        .sub { color: #999; font-size: 13px; margin-bottom: 24px; }
+        .kpi-row { display: flex; gap: 14px; margin-bottom: 22px; }
+        .kpi-card { flex: 1; background: #fff; border-radius: 8px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .kpi-card .label { font-size: 12px; color: #999; }
+        .kpi-card .value { font-size: 26px; font-weight: 700; margin-top: 2px; }
+        .chart-row { display: flex; gap: 14px; margin-bottom: 22px; }
+        .chart-box { flex: 1; background: #fff; border-radius: 8px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .chart-box .title { font-size: 13px; font-weight: 600; color: #666; margin-bottom: 8px; }
+        .chart-inner { width: 100%; height: 320px; }
+        .table-box { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .table-box .title { font-size: 13px; font-weight: 600; color: #666; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 8px; border-bottom: 2px solid #eee; color: #999; font-weight: 600; }
+        td { padding: 9px 8px; border-bottom: 1px solid #f5f5f5; }
+        .tag { padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+        .up-area { background: #fff; border: 2px dashed #ddd; border-radius: 8px; padding: 40px; text-align: center; margin-bottom: 22px; cursor: pointer; transition: .2s; }
+        .up-area:hover { border-color: #1976d2; background: #f8fbff; }
+        .up-area input { display: none; }
+        .up-area p { color: #aaa; font-size: 14px; margin: 4px 0; }
+        .up-area p.main { color: #666; font-size: 16px; font-weight: 600; }
+        .err { background: #fff0f0; color: #c62828; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>RFM 客户价值分析</h1>
+        <p class="sub">Vue 3 + ECharts | 上传银豹 CSV 即刻分析</p>
+
+        <div v-if="error" class="err">{{ error }}</div>
+
+        <div class="up-area" @click="$refs.finput.click()" v-if="!loading">
+            <p class="main">📁 点击上传银豹 CSV 文件</p>
+            <p>支持多文件，列名：会员、日期、实收金额</p>
+            <input type="file" ref="finput" accept=".csv" multiple @change="upload" style="display:none">
+        </div>
+
+        <div v-if="loading" style="text-align:center;padding:40px;color:#999;">分析中...</div>
+
+        <div class="kpi-row" v-if="summary">
+            <div class="kpi-card" v-for="k in kpis" :key="k.label">
+                <div class="label">{{ k.label }}</div>
+                <div class="value">{{ k.value }}</div>
+            </div>
+        </div>
+
+        <div class="chart-row" v-if="summary">
+            <div class="chart-box"><div class="title">月度营收</div><div ref="revChart" class="chart-inner"></div></div>
+            <div class="chart-box"><div class="title">客户分群</div><div ref="pieChart" class="chart-inner"></div></div>
+        </div>
+
+        <div class="table-box" v-if="segments.length">
+            <div class="title">分群明细</div>
+            <table><thead><tr><th>分群</th><th>人数</th><th>营收贡献</th><th>人均</th></tr></thead>
+            <tbody><tr v-for="s in segments" :key="s.name">
+                <td><span class="tag" :style="{background:s.color||'#f0f0f0',color:s.tc||'#666'}">{{ s.name }}</span></td>
+                <td>{{ s.count }}</td><td>¥{{ s.revenue }}</td><td>¥{{ s.avg_spend }}</td>
+            </tr></tbody></table>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, nextTick, computed } = Vue
+        const COLORS = {
+            '重要价值':{bg:'#fff3e0',tc:'#e65100'},'重要唤回':{bg:'#ffe0b2',tc:'#ef6c00'},
+            '重要发展':{bg:'#e8f5e9',tc:'#2e7d32'},'重要挽留':{bg:'#fce4ec',tc:'#c62828'},
+            '一般活跃':{bg:'#e3f2fd',tc:'#1565c0'},'一般':{bg:'#f5f5f5',tc:'#888'},
+            '新客':{bg:'#e0f7fa',tc:'#00838f'},'流失':{bg:'#efebe9',tc:'#6d4c41'},
+        }
+
+        createApp({
+            setup() {
+                const loading = ref(false), error = ref('')
+                const summary = ref(null), segments = ref([]), monthly = ref([])
+                const revChart = ref(null), pieChart = ref(null)
+
+                const kpis = computed(() => summary.value ? [
+                    { label:'总会员', value: summary.value.total_members },
+                    { label:'总营收', value: '¥' + fmt(summary.value.total_revenue) },
+                    { label:'分群数', value: segments.value.length },
+                ] : [])
+
+                async function upload(e) {
+                    const files = e.target.files
+                    if (!files.length) return
+                    loading.value = true; error.value = ''
+
+                    const fd = new FormData()
+                    for (const f of files) fd.append('files', f)
+
+                    try {
+                        const r = await fetch('/api/v1/analyze', { method:'POST', body:fd })
+                        const b = await r.json()
+                        if (b.code !== 200) { error.value = b.message; loading.value = false; return }
+
+                        const d = b.data
+                        summary.value = { total_members: d.total_members, total_revenue: d.total_revenue, avg_daily: d.summary?.avg_daily || 0 }
+                        segments.value = (d.segments||[]).map(s => {
+                            const c = COLORS[Object.keys(COLORS).find(k => s.name?.includes(k))||''] || {bg:'#f5f5f5',tc:'#666'}
+                            return { ...s, color: c.bg, tc: c.tc, avg_spend: s.count ? Math.round(s.revenue/s.count) : 0 }
+                        })
+                        monthly.value = d.monthly_revenue || []
+                        loading.value = false
+                        await nextTick()
+                        renderCharts()
+                    } catch(err) { error.value = '网络错误'; loading.value = false }
+                }
+
+                function renderCharts() {
+                    if (revChart.value && monthly.value.length) {
+                        const c = echarts.init(revChart.value)
+                        c.setOption({
+                            tooltip:{trigger:'axis'}, grid:{left:50,right:20,top:10,bottom:30},
+                            xAxis:{type:'category',data:monthly.value.map(m=>m.month),axisLabel:{fontSize:11}},
+                            yAxis:{type:'value',axisLabel:{fontSize:11}},
+                            series:[{data:monthly.value.map(m=>m.revenue),type:'bar',itemStyle:{color:'#1976d2'},barMaxWidth:24}]
+                        })
+                    }
+                    if (pieChart.value && segments.value.length) {
+                        const c = echarts.init(pieChart.value)
+                        c.setOption({
+                            tooltip:{trigger:'item'}, legend:{bottom:0,itemWidth:10,itemHeight:10,textStyle:{fontSize:10}},
+                            series:[{type:'pie',radius:['45%','75%'],center:['50%','45%'],
+                                label:{formatter:'{b}\n{d}%',fontSize:10},
+                                data:segments.value.map(s=>({name:s.name,value:s.count}))}]
+                        })
+                    }
+                }
+
+                function fmt(n) {
+                    if (n === null || n === undefined) return '—'
+                    const num = typeof n === 'number' ? n : parseFloat(String(n).replace(/[^0-9.]/g,''))
+                    return isNaN(num) ? '—' : num.toLocaleString('zh-CN')
+                }
+
+                return { loading, error, summary, segments, kpis, revChart, pieChart, upload, fmt }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>

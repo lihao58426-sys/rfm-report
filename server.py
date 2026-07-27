@@ -12,7 +12,7 @@ import secrets
 from pathlib import Path
 
 from fastapi import FastAPI, File, Request, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from jinja2 import Environment, FileSystemLoader
 
 from analysis import analyze, analyze_from_db
@@ -50,7 +50,7 @@ def _check_auth(request: Request) -> bool:
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     from fastapi.responses import JSONResponse
-    if request.url.path == "/health":
+    if request.url.path in ("/health", "/app") or request.url.path.startswith("/app/"):
         return await call_next(request)
     if not _check_auth(request):
         return JSONResponse({"detail": "请输入密码"}, status_code=401,
@@ -59,6 +59,7 @@ async def auth_middleware(request: Request, call_next):
 
 # ECharts 等静态文件
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/app", StaticFiles(directory="rfm-frontend", html=True), name="frontend")
 
 # 绕过 Jinja2Templates 的缓存 bug，直接用 Jinja2 加载模板
 jinja_env = Environment(loader=FileSystemLoader("templates"))
@@ -115,6 +116,47 @@ async def import_and_report(request: Request, files: list[UploadFile] = File(...
 
     return render_template("report.html", request=request, result=result,
                          imported=total)
+
+
+# ── API v1（供 Vue 前端调用，返回 JSON）──
+
+@app.post("/api/v1/analyze")
+async def api_analyze(files: list[UploadFile] = File(...)):
+    """上传 CSV → RFM 分析 → 返回 JSON"""
+    if not files:
+        return JSONResponse({"code": 400, "data": None, "message": "请选择文件"}, status_code=400)
+
+    try:
+        result = analyze(files)  # analyze() 直接处理 UploadFile 对象
+    except Exception as e:
+        return JSONResponse({"code": 500, "data": None, "message": str(e)}, status_code=500)
+
+    if "error" in result:
+        return JSONResponse({"code": 400, "data": None, "message": result["error"]}, status_code=400)
+
+    s = result.get("summary", {})
+    monthly = result.get("monthly", [])
+    segs = result.get("segments", [])
+
+    return JSONResponse({
+        "code": 200,
+        "data": {
+            "total_members": s.get("total_members", 0),
+            "total_revenue": s.get("total_revenue", 0),
+            "avg_daily": s.get("avg_m_yuan", s.get("avg_m")),
+            "segments": [{
+                "name": seg.get("name", ""),
+                "count": seg.get("members", 0),
+                "revenue": seg.get("revenue_yuan", 0),
+                "avg_spend": seg.get("avg_per_visit", 0),
+            } for seg in segs],
+            "monthly_revenue": [{
+                "month": m.get("month", ""),
+                "revenue": m.get("total", 0),
+            } for m in monthly],
+        },
+        "message": "ok",
+    })
 
 
 @app.get("/report/latest", response_class=HTMLResponse)
