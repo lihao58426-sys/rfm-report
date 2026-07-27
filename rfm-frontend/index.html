@@ -72,7 +72,7 @@
     </div>
 
     <script>
-        const { createApp, ref, nextTick, computed } = Vue
+        const { createApp, ref, nextTick, computed, onMounted } = Vue
         const COLORS = {
             '重要价值':{bg:'#fff3e0',tc:'#e65100'},'重要唤回':{bg:'#ffe0b2',tc:'#ef6c00'},
             '重要发展':{bg:'#e8f5e9',tc:'#2e7d32'},'重要挽留':{bg:'#fce4ec',tc:'#c62828'},
@@ -84,7 +84,7 @@
             setup() {
                 const loading = ref(false), error = ref('')
                 const summary = ref(null), segments = ref([]), monthly = ref([])
-                const revChart = ref(null), pieChart = ref(null)
+                const revChart = ref(null), pieChart = ref(null), hasData = ref(false)
 
                 const kpis = computed(() => summary.value ? [
                     { label:'总会员', value: summary.value.total_members },
@@ -104,22 +104,14 @@
                         const r = await fetch('/api/v1/analyze', { method:'POST', body:fd })
                         const b = await r.json()
                         if (b.code !== 200) { error.value = b.message; loading.value = false; return }
-
-                        const d = b.data
-                        summary.value = { total_members: d.total_members, total_revenue: d.total_revenue, avg_daily: d.summary?.avg_daily || 0 }
-                        segments.value = (d.segments||[]).map(s => {
-                            const c = COLORS[Object.keys(COLORS).find(k => s.name?.includes(k))||''] || {bg:'#f5f5f5',tc:'#666'}
-                            return { ...s, color: c.bg, tc: c.tc, avg_spend: s.count ? Math.round(s.revenue/s.count) : 0 }
-                        })
-                        monthly.value = d.monthly_revenue || []
+                        await showData(b.data)
                         loading.value = false
-                        await nextTick()
-                        renderCharts()
                     } catch(err) { error.value = '网络错误'; loading.value = false }
                 }
 
                 function renderCharts() {
-                    if (revChart.value && monthly.value.length) {
+                    if (!revChart.value || !pieChart.value) return
+                    if (monthly.value.length) {
                         const c = echarts.init(revChart.value)
                         c.setOption({
                             tooltip:{trigger:'axis'}, grid:{left:50,right:20,top:10,bottom:30},
@@ -145,7 +137,33 @@
                     return isNaN(num) ? '—' : num.toLocaleString('zh-CN')
                 }
 
-                return { loading, error, summary, segments, kpis, revChart, pieChart, upload, fmt }
+                onMounted(async () => {
+                    // 优先从 URL 参数取 days/segment，否则默认查全部
+                    const params = new URLSearchParams(window.location.search)
+                    const days = params.get('days') || '0'
+                    const url = `/api/v1/report?days=${days}`
+                    try {
+                        const r = await fetch(url)
+                        const b = await r.json()
+                        if (b.code === 200 && b.data?.total_members) {
+                            await showData(b.data)
+                        }
+                    } catch(e) { /* 数据库为空，保持上传区显示 */ }
+                })
+
+                async function showData(d) {
+                    summary.value = { total_members: d.total_members, total_revenue: d.total_revenue }
+                    segments.value = (d.segments||[]).map(s => {
+                        const c = COLORS[Object.keys(COLORS).find(k => s.name?.includes(k))||''] || {bg:'#f5f5f5',tc:'#666'}
+                        return { ...s, color: c.bg, tc: c.tc, avg_spend: s.count ? Math.round(s.revenue/s.count) : 0 }
+                    })
+                    monthly.value = d.monthly_revenue || []
+                    hasData.value = true
+                    await nextTick()
+                    renderCharts()
+                }
+
+                return { loading, error, summary, segments, kpis, revChart, pieChart, upload, fmt, hasData }
             }
         }).mount('#app')
     </script>
