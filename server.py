@@ -120,6 +120,37 @@ async def import_and_report(request: Request, files: list[UploadFile] = File(...
 
 # ── API v1（供 Vue 前端调用，返回 JSON）──
 
+def _format_result(result: dict, segment: str = "") -> dict:
+    """把 analyze()/analyze_from_db() 的返回格式转成前端友好的 JSON
+
+    统一处理：
+      - 字段名翻译（members → count, revenue_yuan → revenue）
+      - 金额四舍五入到整数
+      - segment 精确筛选
+    """
+    s = result.get("summary", {})
+    monthly = result.get("monthly", [])
+    segs = result.get("segments", [])
+
+    if segment:
+        segs = [seg for seg in segs if seg.get("name") == segment]
+
+    return {
+        "total_members": s.get("total_members", 0),
+        "total_revenue": round(s.get("total_revenue", 0)),
+        "segments": [{
+            "name": seg.get("name", ""),
+            "count": seg.get("members", 0),
+            "revenue": round(seg.get("revenue_yuan", 0)),
+            "avg_spend": round(seg.get("avg_per_visit", 0)),
+        } for seg in segs],
+        "monthly_revenue": [{
+            "month": m.get("month", ""),
+            "revenue": round(m.get("total", 0)),
+        } for m in monthly],
+    }
+
+
 @app.post("/api/v1/analyze")
 async def api_analyze(files: list[UploadFile] = File(...)):
     """上传 CSV → RFM 分析 → 返回 JSON"""
