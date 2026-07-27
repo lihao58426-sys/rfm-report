@@ -158,36 +158,43 @@ async def api_analyze(files: list[UploadFile] = File(...)):
         return JSONResponse({"code": 400, "data": None, "message": "请选择文件"}, status_code=400)
 
     try:
-        result = analyze(files)  # analyze() 直接处理 UploadFile 对象
+        result = analyze(files)
     except Exception as e:
-        return JSONResponse({"code": 500, "data": None, "message": str(e)}, status_code=500)
+        logger.error(f"CSV 分析失败: {e}")
+        return JSONResponse({"code": 500, "data": None, "message": "分析失败，请检查 CSV 格式"}, status_code=500)
 
     if "error" in result:
         return JSONResponse({"code": 400, "data": None, "message": result["error"]}, status_code=400)
 
-    s = result.get("summary", {})
-    monthly = result.get("monthly", [])
-    segs = result.get("segments", [])
+    return JSONResponse({"code": 200, "data": _format_result(result), "message": "ok"})
 
-    return JSONResponse({
-        "code": 200,
-        "data": {
-            "total_members": s.get("total_members", 0),
-            "total_revenue": s.get("total_revenue", 0),
-            "avg_daily": s.get("avg_m_yuan", s.get("avg_m")),
-            "segments": [{
-                "name": seg.get("name", ""),
-                "count": seg.get("members", 0),
-                "revenue": seg.get("revenue_yuan", 0),
-                "avg_spend": seg.get("avg_per_visit", 0),
-            } for seg in segs],
-            "monthly_revenue": [{
-                "month": m.get("month", ""),
-                "revenue": m.get("total", 0),
-            } for m in monthly],
-        },
-        "message": "ok",
-    })
+
+@app.get("/api/v1/report")
+async def api_report(request: Request):
+    """从数据库读取历史 RFM 分析——支持 days 和 segment 筛选"""
+    days_str = request.query_params.get("days", "0")
+    try:
+        days = int(days_str)
+    except (ValueError, TypeError):
+        return JSONResponse({"code": 400, "data": None, "message": f"days 必须是数字，收到: {days_str}"}, status_code=400)
+
+    segment = request.query_params.get("segment", "")
+
+    try:
+        result = analyze_from_db(days=days)
+    except Exception as e:
+        logger.error(f"数据库查询失败: {e}")
+        return JSONResponse({"code": 500, "data": None, "message": "数据库查询失败"}, status_code=500)
+
+    if "error" in result:
+        msg = result["error"]
+        # 有 error 但可能有部分数据——按情况判断
+        if result.get("summary", {}).get("total_members", 0) > 0:
+            logger.warning(f"RFM 查询部分数据可用: {msg}")
+        else:
+            return JSONResponse({"code": 400, "data": None, "message": msg}, status_code=400)
+
+    return JSONResponse({"code": 200, "data": _format_result(result, segment), "message": "ok"})
 
 
 @app.get("/report/latest", response_class=HTMLResponse)
