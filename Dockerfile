@@ -32,6 +32,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY server.py analysis.py database.py .
 COPY templates/ templates/
 COPY static/ static/
+COPY rfm-frontend/ rfm-frontend/
 
 # 第7步：暴露端口（"告诉客人从哪个门进来"）
 # 8001 = RFM 报告的端口
